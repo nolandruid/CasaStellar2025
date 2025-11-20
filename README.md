@@ -96,7 +96,7 @@
   System Flow: 
 
   ![alt text](image.png)
-  
+
   ## Hackathon Success Criteria
 
   - Users can deposit a test payroll batch (≥10 recipients) into a Soroban contract, funds generate simulated yield, and the contract auto-distributes exact amounts on the scheduled payday.
@@ -106,12 +106,14 @@
 
   ## 7. Team
 
-  Team name: [Your Mom]
-  Members and roles:
-  [Name] – Soroban smart contracts (yield lock, disbursement logic, DeFi integration)
-  [Name] – Frontend (React dashboard, employee portal)
-  [Name] – Backend/API (Node.js, ZK proof generation, SDP integration)
-  [Name] – Product/Design (UX flows, compliance documentation)
+  Team name: Payday
+        Members and roles:
+        Nolan  Druid– Soroban smart contracts (yield lock, disbursement logic, DeFi integration)
+        Diego Moron – Frontend (React dashboard, employee portal)
+        Andrés Bustamantes – Backend/API (Node.js, ZK proof generation, SDP integration)
+        Robert Sun – Product/Design (UX flows, compliance documentation)
+        Leonardo Vaca – Product/Strategy Lead (user research, feature prioritization,business logic design)
+
 
 
 
