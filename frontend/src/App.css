@@ -1,14 +1,84 @@
-#root {
-  max-width: 1280px;
+.app {
+  min-height: 100vh;
+}
+
+.main-nav {
+  background: #1a1a1a;
+  border-bottom: 1px solid #333;
+  padding: 1rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-content {
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.card {
-  padding: 2em;
+.nav-logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-decoration: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.read-the-docs {
+.nav-links {
+  display: flex;
+  gap: 2rem;
+}
+
+.nav-link {
+  text-decoration: none;
   color: #888;
+  font-weight: 500;
+  transition: color 0.2s;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+}
+
+.nav-link:hover {
+  color: white;
+  background: #2a2a2a;
+}
+
+@media (prefers-color-scheme: light) {
+  .main-nav {
+    background: white;
+    border-bottom-color: #ddd;
+  }
+
+  .nav-logo {
+    color: black;
+  }
+
+  .nav-link {
+    color: #666;
+  }
+
+  .nav-link:hover {
+    color: black;
+    background: #f5f5f5;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-nav {
+    padding: 1rem;
+  }
+
+  .nav-content {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .nav-links {
+    gap: 1rem;
+  }
 }

@@ -1,24 +1,33 @@
-import { useState } from 'react'
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { WalletProvider } from './context/WalletContext'
+import Dashboard from './pages/Dashboard'
+import Status from './pages/Status'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <BrowserRouter>
+      <WalletProvider>
+        <div className="app">
+          <nav className="main-nav">
+            <div className="nav-content">
+              <Link to="/" className="nav-logo">
+                ⭐ CasaStellar
+              </Link>
+              <div className="nav-links">
+                <Link to="/" className="nav-link">Upload</Link>
+                <Link to="/status" className="nav-link">Status</Link>
+              </div>
+            </div>
+          </nav>
+
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/status" element={<Status />} />
+          </Routes>
+        </div>
+      </WalletProvider>
+    </BrowserRouter>
   )
 }
 
