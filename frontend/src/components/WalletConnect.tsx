@@ -1,8 +1,22 @@
+import { useEffect, useRef } from 'react'
 import { useWallet } from '../context/WalletContext'
+import { StellarWalletsKit } from '@creit-tech/stellar-wallets-kit/sdk'
 import './WalletConnect.css'
 
 export default function WalletConnect() {
-  const { publicKey, isConnected, connectWallet, disconnectWallet } = useWallet()
+  const { publicKey, isConnected, disconnectWallet } = useWallet()
+  const buttonWrapperRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    // Create the wallet button using the kit's native button
+    if (buttonWrapperRef.current && !isConnected) {
+      try {
+        StellarWalletsKit.createButton(buttonWrapperRef.current)
+      } catch (error) {
+        console.error('Error creating wallet button:', error)
+      }
+    }
+  }, [isConnected])
 
   const formatAddress = (address: string) => {
     return `${address.slice(0, 4)}...${address.slice(-4)}`
@@ -18,9 +32,7 @@ export default function WalletConnect() {
           </button>
         </div>
       ) : (
-        <button onClick={connectWallet} className="btn-connect">
-          Connect Wallet
-        </button>
+        <div ref={buttonWrapperRef} className="wallet-button-wrapper"></div>
       )}
     </div>
   )

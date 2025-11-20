@@ -4,6 +4,11 @@
   gap: 1rem;
 }
 
+.wallet-button-wrapper {
+  display: flex;
+  align-items: center;
+}
+
 .wallet-connected {
   display: flex;
   align-items: center;

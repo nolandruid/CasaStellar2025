@@ -66,15 +66,20 @@ src/
 
 ## 🔗 Wallet Setup
 
-### Freighter Wallet
+This project uses **Stellar Wallets Kit** by Creit.tech for seamless wallet integration.
 
-1. Install [Freighter browser extension](https://www.freighter.app/)
-2. Create or import a wallet
-3. Click "Connect Wallet" in the app
+### Supported Wallets
 
-### Albedo Wallet (Coming Soon)
+1. **Freighter** - [Install extension](https://www.freighter.app/)
+2. **Albedo** - Web-based wallet
+3. **xBull** - Multi-platform wallet
 
-Albedo integration is stubbed and ready for implementation.
+### How to Connect
+
+1. Click "Connect Wallet" button
+2. Select your preferred wallet from the modal
+3. Approve the connection in your wallet
+4. Your address will be displayed in the header
 
 ## 🧪 Mock API
 
