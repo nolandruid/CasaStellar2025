@@ -1,10 +1,55 @@
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom'
 import { WalletProvider } from './context/WalletContext'
 import Dashboard from './pages/Dashboard'
 import Status from './pages/Status'
+import SplashScreen from './components/SplashScreen'
+import LoginScreen from './components/LoginScreen'
 import './App.css'
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  useEffect(() => {
+    // Check if user was previously authenticated
+    const auth = localStorage.getItem('isAuthenticated')
+    if (auth === 'true') {
+      setIsAuthenticated(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    // Save authentication state
+    localStorage.setItem('isAuthenticated', String(isAuthenticated))
+  }, [isAuthenticated])
+
+  const handleLoadingComplete = () => {
+    setShowSplash(false)
+  }
+
+  const handleLogout = () => {
+    setIsAuthenticated(false)
+    localStorage.removeItem('isAuthenticated')
+  }
+
+  // Show splash screen on first load
+  if (showSplash) {
+    return <SplashScreen onLoadingComplete={handleLoadingComplete} />
+  }
+
+  // Show login screen if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="*" element={<LoginScreen onLoginSuccess={() => setIsAuthenticated(true)} />} />
+        </Routes>
+      </BrowserRouter>
+    )
+  }
+
+  // Show main app if authenticated
   return (
     <BrowserRouter>
       <WalletProvider>
@@ -12,11 +57,15 @@ function App() {
           <nav className="main-nav">
             <div className="nav-content">
               <Link to="/" className="nav-logo">
-                ⭐ CasaStellar
+                <span className="logo-icon">💰</span>
+                <span className="logo-text">PayDay</span>
               </Link>
               <div className="nav-links">
                 <Link to="/" className="nav-link">Upload</Link>
                 <Link to="/status" className="nav-link">Status</Link>
+                <button onClick={handleLogout} className="nav-link logout-btn">
+                  Logout
+                </button>
               </div>
             </div>
           </nav>
@@ -24,6 +73,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/status" element={<Status />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
       </WalletProvider>
