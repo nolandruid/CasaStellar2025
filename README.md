@@ -22,8 +22,8 @@
   Finance and payroll teams face operational pressure, while workers experience uncertainty, late payments, and erosion of trust — all stemming from outdated, manual, and opaque payout processes.
 
   Why is this problem urgent now?
-  - Today, LATAM’s workforce is more remote, diverse, and digitally savvy than ever, and competition for talent is fierce. Employees and suppliers are demanding payment certainty—not just faster payouts, but guaranteed, automated, and provable on-time delivery. Businesses that keep delaying or rely on opaque, manual processes lose credibility, risk regulatory penalties, and see top talent walk out the door.
-  StellarPay leverages the breakthrough of Soroban smart contracts to make true automation, yield on idle payroll, and zero-knowledge proof of timeliness possible for the first time. In a region where financial stress and payment anxiety hit hardest, automating salary delivery isn't just efficiency—it's critical for survival. The market is shifting now, and companies who act today will lead; those who wait will lose trust and be left behind.
+  - Today, LATAM’s workforce is more remote, diverse, and digitally savvy than ever, and competition for talent is fierce. Employees and suppliers are demanding payment certainty—not just faster payouts, but guaranteed, automated, and provable on-time delivery. Businesses that continually delay or rely on opaque, manual processes lose credibility, risk regulatory penalties, and see top talent leave.
+  StellarPay leverages the breakthrough of Soroban smart contracts to make true automation, yield on idle payroll, and zero-knowledge proof of timeliness possible for the first time. In a region where financial stress and payment anxiety hit hardest, automating salary delivery isn't just efficiency—it's critical for survival. The market is shifting now, and companies that act today will lead; those who wait will lose trust and be left behind.
 
 
   ## 2. Target User and User Need
@@ -42,8 +42,8 @@
   StellarPay is a Soroban-powered payroll platform for LATAM businesses that transforms idle payroll funds into productive assets. Instead of letting cash sit for weeks before payday, companies deposit funds into yield-generating smart contracts, earning 4-6% APY in DeFi protocols while payroll is scheduled. On payday, Soroban automates exact, on-time distribution in USDC via Stellar’s network—delivering instant, transparent payments without manual intervention or trust in human processes.
 
   - What sets PayDay apart:
-  Zero-knowledge proofs publicly verify payment timing and compliance, proving every salary was paid on schedule to every recipient—without exposing amounts, employee identities, or company payroll sizes, solving the transparency vs. privacy paradox.
-  Yield sharing: Generated yield is split, with 70% given to employees as bonuses and 30% returned to the employer for treasury optimization.
+  Zero-knowledge proofs publicly verify payment timing and compliance, proving that every salary was paid on schedule to every recipient—without exposing amounts, employee identities, or company payroll sizes, thereby resolving the transparency vs. privacy paradox.
+  Yield sharing: The generated yield is split, with 70% allocated to employees as bonuses and 30% returned to the employer for treasury optimization.
   No manual bottlenecks: Payroll admins deposit once—Soroban handles everything else, automatically, provably, and with complete transparency.
   Built for real LATAM needs: Automated compliance, instant cross-border settlement, and cash-out to local currencies empower both employees and suppliers.
 
@@ -99,7 +99,7 @@
 
   ## Hackathon Success Criteria
 
-  - Users can deposit a test payroll batch (≥10 recipients) into a Soroban contract, funds generate simulated yield, and the contract auto-distributes exact amounts on the scheduled payday.
+  - Users can deposit a test payroll batch (≥10 recipients) into a Soroban contract, funds generate a simulated yield, and the contract auto-distributes exact amounts on the scheduled payday.
   - The app generates and posts a zero-knowledge proof on-chain that confirms “100% on-time payments” without exposing salary or recipient identities.
   - Dashboard clearly visualizes at least 48 hours of yield accumulation, with actual APY and payout bonuses from Blend (or testnet DeFi).
   - Full integration with Stellar Disbursement Platform or direct Soroban-based batch payout, processing at least 10 payments in under 30 seconds.
@@ -112,7 +112,7 @@
         Diego Moron – Frontend (React dashboard, employee portal)
         Andrés Bustamantes – Backend/API (Node.js, ZK proof generation, SDP integration)
         Robert Sun – Product/Design (UX flows, compliance documentation)
-        Leonardo Vaca – Product/Strategy Lead (user research, feature prioritization,business logic design)
+        Leonardo Vaca – Product/Strategy Lead (user research, feature prioritization, business logic design)
 
 
 
