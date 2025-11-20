@@ -8,6 +8,7 @@
   - [Core Features (Hackathon Scope)](#core-features-hackathon-scope)
   - [MVP Architecture](#mvp-architecture)
   - [Hackathon Success Criteria](#hackathon-success-criteria)
+  - [Environment Setup](#environment-setup)
   - [7. Team](#7-team)
 
   ## 1. Problem Statement
@@ -103,6 +104,28 @@
   - The app generates and posts a zero-knowledge proof on-chain that confirms “100% on-time payments” without exposing salary or recipient identities.
   - Dashboard clearly visualizes at least 48 hours of yield accumulation, with actual APY and payout bonuses from Blend (or testnet DeFi).
   - Full integration with Stellar Disbursement Platform or direct Soroban-based batch payout, processing at least 10 payments in under 30 seconds.
+
+  ## Environment Setup
+
+  The project uses separate environment configurations for frontend and backend:
+
+  **Frontend Setup** (`/frontend`):
+  1. Copy `/frontend/.env.example` to `/frontend/.env`
+  2. Configure:
+     - Stellar network settings (testnet/futurenet/mainnet)
+     - Soroban RPC URL
+     - Smart contract addresses (after deployment)
+     - Backend API URL (default: `http://localhost:3003`)
+     - DeFi integration addresses
+
+  **Backend Setup** (`/backend`):
+  1. Copy `/backend/.env.example` to `/backend/.env`
+  2. Configure:
+     - Server port (default: `3003`)
+     - Node environment
+     - Stellar network and Soroban RPC URL
+
+  **Important**: Never commit actual `.env` files or API keys to version control. All sensitive values should only exist in your local `.env` files.
 
   ## 7. Team
 
