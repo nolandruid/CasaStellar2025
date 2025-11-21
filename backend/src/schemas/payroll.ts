@@ -41,6 +41,16 @@ const UploadPayrollSchema = z.object({
     .array(EmployeeSchema)
     .min(1, 'At least one employee is required')
     .describe('Array of employees with payroll information'),
+  employerAddress: z
+    .string()
+    .regex(/^G[A-Z0-9]{55}$/, 'Invalid Stellar wallet address format')
+    .describe('Employer Stellar wallet address'),
+  payoutDate: z
+    .union([
+      z.string().datetime('Invalid datetime format'),
+      z.number().int().positive('Payout date must be a positive Unix timestamp')
+    ])
+    .describe('Payout date (ISO string or Unix timestamp)'),
 });
 
 /**
