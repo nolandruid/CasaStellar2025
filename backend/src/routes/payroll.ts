@@ -8,6 +8,7 @@ import { Request, Response, Router } from "express";
 import { ZodError } from "zod";
 import { ClaimPaySchema, UploadPayrollSchema } from "../schemas/payroll";
 import { generateClaimId, generatePayrollId } from "../services/stellar";
+import { lockPayroll, releaseToFindex, getPayrollStatus, amountToStroops } from "../services/contract";
 
 interface UploadPayrollResponse {
   success: boolean;
@@ -16,6 +17,8 @@ interface UploadPayrollResponse {
   employeeCount: number;
   status: string;
   timestamp: string;
+  txHash?: string;
+  totalAmount?: string;
 }
 
 interface ErrorResponse {
@@ -76,24 +79,47 @@ router.post(
         return;
       }
 
-      const { employees } = validationResult.data;
+      const { employees, employerAddress, payoutDate } = validationResult.data;
 
       // Generate payroll ID
       const payrollId = generatePayrollId();
 
-      // TODO: In future implementation:
-      // 1. Store payroll data in database
-      // 2. Prepare Soroban contract invocation
-      // 3. Execute transaction on Stellar testnet
-      // 4. Return transaction hash
+      // Calculate total amount from all employees
+      const totalAmount = employees.reduce((sum, emp) => {
+        return sum + parseFloat(emp.amount);
+      }, 0);
+
+      // Convert to stroops (7 decimal places for Stellar)
+      const totalStroops = amountToStroops(totalAmount);
+
+      // Lock payroll in smart contract
+      let txHash: string | undefined;
+      try {
+        // Convert payout date to Unix timestamp if it's a string
+        const payoutTimestamp = typeof payoutDate === 'string' 
+          ? Math.floor(new Date(payoutDate).getTime() / 1000)
+          : payoutDate;
+
+        txHash = await lockPayroll(
+          employerAddress,
+          totalStroops,
+          payoutTimestamp
+        );
+      } catch (contractError) {
+        const errorMsg = contractError instanceof Error ? contractError.message : 'Contract call failed';
+        console.error('Contract error:', errorMsg);
+        // Continue even if contract fails (for demo purposes)
+      }
 
       const response: UploadPayrollResponse = {
         success: true,
-        message: "Payroll uploaded successfully",
+        message: txHash ? "Payroll uploaded and locked in contract" : "Payroll uploaded (contract call failed)",
         payrollId,
         employeeCount: employees.length,
-        status: "uploaded",
+        status: txHash ? "locked" : "uploaded",
         timestamp: new Date().toISOString(),
+        txHash,
+        totalAmount: totalAmount.toString(),
       };
 
       res.status(200).json(response);
@@ -109,6 +135,73 @@ router.post(
     }
   }
 );
+
+/**
+ * POST /claimPay
+ * Employee claims their payment
+ *
+ * @param {Request} req - Express request
+ * @param {Response} res - Express response
+ */
+/**
+ * POST /releasePayroll
+ * Release locked payroll to Findex for distribution (called on payday)
+ *
+ * @param {Request} req - Express request
+ * @param {Response} res - Express response
+ */
+router.post("/releasePayroll", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { findexAddress } = req.body;
+
+    // Call contract to release funds
+    const result = await releaseToFindex(findexAddress);
+
+    res.status(200).json({
+      success: true,
+      message: "Payroll released successfully",
+      txHash: result.txHash,
+      yieldEarned: result.yieldEarned,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error in /releasePayroll:", errorMessage);
+    res.status(500).json({
+      success: false,
+      error: "Failed to release payroll",
+      details: { error: [errorMessage] },
+    } as ErrorResponse);
+  }
+});
+
+/**
+ * GET /getStatus
+ * Get current payroll lock status from contract
+ *
+ * @param {Request} req - Express request
+ * @param {Response} res - Express response
+ */
+router.get("/getStatus", async (req: Request, res: Response): Promise<void> => {
+  try {
+    // Query contract for current status
+    const status = await getPayrollStatus();
+
+    res.status(200).json({
+      success: true,
+      data: status,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error in /getStatus:", errorMessage);
+    res.status(500).json({
+      success: false,
+      error: "Failed to get payroll status",
+      details: { error: [errorMessage] },
+    } as ErrorResponse);
+  }
+});
 
 /**
  * POST /claimPay
