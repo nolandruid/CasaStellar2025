@@ -61,27 +61,33 @@
 /* Payroll Card */
 .payroll-card {
   margin-bottom: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .card-inner {
   display: flex;
   width: 100%;
-  min-width: 18rem;
+  max-width: 100%;
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
   gap: 1rem;
   padding: 1.5rem;
   border-radius: 0.75rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  background: #0A2540;
-  color: white;
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.08);
+  background: white;
+  border: 1px solid #E9ECEF;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .card-header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .card-title {
@@ -89,6 +95,8 @@
   font-weight: 700;
   letter-spacing: -0.015em;
   margin: 0;
+  color: #0A2540;
+  flex-shrink: 0;
 }
 
 .due-badge {
@@ -96,13 +104,17 @@
   align-items: center;
   gap: 0.5rem;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.1);
+  background: #FEF3C7;
+  color: #92400E;
   padding: 0.25rem 0.75rem;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .badge-icon {
   width: 1rem;
   height: 1rem;
+  flex-shrink: 0;
 }
 
 .due-badge span {
@@ -114,11 +126,13 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  width: 100%;
+  overflow: hidden;
 }
 
 .amount-label {
   font-size: 1rem;
-  opacity: 0.8;
+  color: #6c757d;
   margin: 0;
 }
 
@@ -127,6 +141,9 @@
   font-weight: 700;
   letter-spacing: -0.05em;
   margin: 0;
+  color: #0A2540;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .btn-run-payroll {
@@ -143,7 +160,7 @@
   height: 3rem;
   padding: 0 1rem;
   background: #10B981;
-  color: #0A2540;
+  color: white;
   border: none;
   font-size: 1rem;
   font-weight: 700;
@@ -357,60 +374,68 @@
 /* Dark Mode */
 @media (prefers-color-scheme: dark) {
   .dashboard-container {
-    background: #0A2540;
+    background: #f8f9fa;
   }
 
   .dashboard-header {
-    background: rgba(10, 37, 64, 0.8);
-    border-bottom-color: rgba(48, 90, 135, 0.3);
+    background: rgba(248, 249, 250, 0.8);
   }
 
   .header-title {
-    color: #E9ECEF;
+    color: #495057;
   }
 
   .section-title {
-    color: #E9ECEF;
+    color: #495057;
   }
 
   .stat-card,
   .chart-card,
   .activity-item {
-    background: #1a3a5a;
-    border-color: #305a87;
+    background: white;
+    border-color: #E9ECEF;
   }
 
   .stat-label,
   .chart-subtitle,
   .activity-date {
-    color: #E9ECEF;
+    color: #6c757d;
   }
 
   .stat-value,
   .chart-title,
   .activity-title {
-    color: white;
+    color: #0A2540;
   }
 
   .bar-label {
-    color: #E9ECEF;
+    color: #6c757d;
   }
 
   .card-inner {
     background: white;
+    border-color: #E9ECEF;
+  }
+
+  .card-title {
     color: #0A2540;
   }
 
   .due-badge {
-    background: rgba(10, 37, 64, 0.1);
+    background: #FEF3C7;
+    color: #92400E;
+  }
+
+  .amount-label {
+    color: #6c757d;
+  }
+
+  .amount-value {
+    color: #0A2540;
   }
 
   .btn-run-payroll {
     background: #10B981;
-    color: #0A2540;
-  }
-
-  .btn-run-payroll:hover {
     color: white;
   }
 }
@@ -425,12 +450,33 @@
     font-size: 1rem;
   }
 
+  .dashboard-content {
+    padding: 0.75rem;
+  }
+
+  .payroll-card {
+    margin-bottom: 1rem;
+  }
+
   .card-inner {
-    padding: 1.25rem;
+    padding: 1rem;
+  }
+
+  .card-title {
+    font-size: 1rem;
+  }
+
+  .amount-label {
+    font-size: 0.875rem;
   }
 
   .amount-value {
-    font-size: 1.875rem;
+    font-size: 1.75rem;
+  }
+
+  .btn-run-payroll {
+    height: 2.75rem;
+    font-size: 0.9375rem;
   }
 
   .chart-bars {

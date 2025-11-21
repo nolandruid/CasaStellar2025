@@ -1,0 +1,479 @@
+.employees-container {
+  min-height: 100vh;
+  background: #f8f9fa;
+  padding: 1rem;
+  padding-bottom: 6rem;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Header */
+.employees-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-title {
+  color: #0A2540;
+  font-size: 1.875rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  margin: 0 0 0.25rem 0;
+}
+
+.page-subtitle {
+  color: #495057;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Actions Bar */
+.actions-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.actions-left {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: #10B981;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.btn-primary:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: white;
+  color: #495057;
+  border: 1px solid #E9ECEF;
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.btn-secondary:hover {
+  background: #f8f9fa;
+  border-color: #10B981;
+  color: #10B981;
+}
+
+/* Stats Row */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-box {
+  background: white;
+  border: 1px solid #E9ECEF;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.stat-label {
+  color: #495057;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin: 0 0 0.5rem 0;
+}
+
+.stat-number {
+  color: #0A2540;
+  font-size: 1.875rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+/* Employees List */
+.employees-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.employee-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: white;
+  border: 1px solid #E9ECEF;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  transition: all 0.2s ease;
+}
+
+.employee-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #10B981;
+}
+
+.employee-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 50%;
+  color: #10B981;
+  flex-shrink: 0;
+}
+
+.employee-avatar svg {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.employee-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.employee-name {
+  color: #0A2540;
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.employee-wallet {
+  color: #495057;
+  font-size: 0.875rem;
+  font-family: 'Courier New', monospace;
+  margin: 0 0 0.25rem 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.employee-date {
+  color: #6c757d;
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.employee-salary {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.salary-label {
+  color: #495057;
+  font-size: 0.75rem;
+  margin: 0 0 0.25rem 0;
+}
+
+.salary-amount {
+  color: #10B981;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.btn-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  background: transparent;
+  color: #dc3545;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-delete svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.btn-delete:hover {
+  background: rgba(220, 53, 69, 0.1);
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: white;
+  border-radius: 0.75rem;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  animation: modalSlideUp 0.3s ease-out;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  border-bottom: 1px solid #E9ECEF;
+}
+
+.modal-title {
+  color: #0A2540;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background: transparent;
+  color: #6c757d;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-close svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.modal-close:hover {
+  background: #f8f9fa;
+  color: #495057;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-label {
+  display: block;
+  color: #495057;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #E9ECEF;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  color: #0A2540;
+  background: white;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.form-input::placeholder {
+  color: #adb5bd;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #10B981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.modal-footer {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding: 1.5rem;
+  border-top: 1px solid #E9ECEF;
+}
+
+/* Dark Mode - Keep light theme */
+@media (prefers-color-scheme: dark) {
+  .employees-container {
+    background: #f8f9fa;
+  }
+
+  .page-title {
+    color: #0A2540;
+  }
+
+  .page-subtitle {
+    color: #495057;
+  }
+
+  .btn-secondary {
+    background: white;
+    border-color: #E9ECEF;
+    color: #495057;
+  }
+
+  .btn-secondary:hover {
+    background: #f8f9fa;
+    border-color: #10B981;
+    color: #10B981;
+  }
+
+  .stat-box,
+  .employee-card,
+  .modal-content {
+    background: white;
+    border-color: #E9ECEF;
+  }
+
+  .stat-label,
+  .employee-wallet,
+  .salary-label {
+    color: #6c757d;
+  }
+
+  .stat-number,
+  .employee-name,
+  .modal-title {
+    color: #0A2540;
+  }
+
+  .employee-date {
+    color: #6c757d;
+  }
+
+  .modal-header,
+  .modal-footer {
+    border-color: #E9ECEF;
+  }
+
+  .modal-close:hover {
+    background: #f8f9fa;
+    color: #495057;
+  }
+
+  .form-input {
+    background: white;
+    border-color: #E9ECEF;
+    color: #0A2540;
+  }
+
+  .form-input::placeholder {
+    color: #adb5bd;
+  }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .employee-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .employee-info {
+    width: 100%;
+  }
+
+  .employee-salary {
+    width: 100%;
+    text-align: left;
+  }
+
+  .btn-delete {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+  }
+
+  .employee-card {
+    position: relative;
+    padding-right: 3.5rem;
+  }
+
+  .actions-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions-left {
+    width: 100%;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    flex: 1;
+    justify-content: center;
+  }
+}

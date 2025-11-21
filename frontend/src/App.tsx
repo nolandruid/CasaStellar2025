@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom'
 import { WalletProvider } from './context/WalletContext'
 import Dashboard from './pages/Dashboard'
 import Status from './pages/Status'
+import Employees from './pages/Employees'
+import Settings from './pages/Settings'
 import SplashScreen from './components/SplashScreen'
 import LoginScreen from './components/LoginScreen'
 import './App.css'
@@ -61,8 +63,10 @@ function App() {
                 <span className="logo-text">PayDay</span>
               </Link>
               <div className="nav-links">
-                <Link to="/" className="nav-link">Upload</Link>
+                <Link to="/" className="nav-link">Dashboard</Link>
+                <Link to="/employees" className="nav-link">Employees</Link>
                 <Link to="/status" className="nav-link">Status</Link>
+                <Link to="/settings" className="nav-link">Settings</Link>
                 <button onClick={handleLogout} className="nav-link logout-btn">
                   Logout
                 </button>
@@ -72,7 +76,9 @@ function App() {
 
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/employees" element={<Employees />} />
             <Route path="/status" element={<Status />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
