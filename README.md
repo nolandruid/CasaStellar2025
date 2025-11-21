@@ -107,25 +107,134 @@
 
   ## Environment Setup
 
-  The project uses separate environment configurations for frontend and backend:
+### Prerequisites
+- Node.js 18+
+- Rust and Soroban CLI
+- Docker (for SDP)
+- Stellar CLI
 
-  **Frontend Setup** (`/frontend`):
-  1. Copy `/frontend/.env.example` to `/frontend/.env`
-  2. Configure:
-     - Stellar network settings (testnet/futurenet/mainnet)
-     - Soroban RPC URL
-     - Smart contract addresses (after deployment)
-     - Backend API URL (default: `http://localhost:3003`)
-     - DeFi integration addresses
+### 1. Smart Contract Deployment
 
-  **Backend Setup** (`/backend`):
-  1. Copy `/backend/.env.example` to `/backend/.env`
-  2. Configure:
-     - Server port (default: `3003`)
-     - Node environment
-     - Stellar network and Soroban RPC URL
+**Build and Deploy Yield Contract:**
+```bash
+cd payday/contracts/payday-yield
 
-  **Important**: Never commit actual `.env` files or API keys to version control. All sensitive values should only exist in your local `.env` files.
+# Build contract
+stellar contract build
+
+# Deploy to testnet
+stellar contract deploy \
+  --wasm target/wasm32v1-none/release/payday_yield.wasm \
+  --network testnet \
+  --source <YOUR_SECRET_KEY>
+
+# Save the contract ID
+```
+
+**Initialize Contract:**
+```bash
+stellar contract invoke \
+  --id <YIELD_CONTRACT_ID> \
+  --network testnet \
+  -- initialize \
+  --defindex_pool CAWE7KW36IFSPDIVTK6LDXAING2NWA3KPHIIBTVUGLPTSCQTIICTKIJV \
+  --token CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
+```
+
+### 2. SDP (Stellar Disbursement Platform) Setup
+
+**Deploy SDP Backend:**
+```bash
+# Clone SDP repository
+git clone https://github.com/stellar/stellar-disbursement-platform-backend
+cd stellar-disbursement-platform-backend
+
+# Start with Docker
+docker-compose up -d
+
+# Create admin user
+docker exec -it sdp-backend bash
+./stellar-disbursement-platform auth create-user \
+  --email admin@example.com \
+  --password yourpassword
+
+# Get API token
+curl -X POST http://localhost:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"yourpassword"}'
+```
+
+**Create SDP Wallet:**
+```bash
+# Generate wallet for receiving payroll distributions
+stellar keys generate sdp-wallet --network testnet
+
+# Fund it
+curl "https://friendbot.stellar.org?addr=<SDP_WALLET_ADDRESS>"
+```
+
+### 3. Backend Setup
+
+**Configure Environment:**
+```bash
+cd backend
+cp .env.example .env
+```
+
+**Update `.env` with your values:**
+```bash
+# Smart Contract Configuration
+PAYDAY_YIELD_CONTRACT_ID=<YOUR_DEPLOYED_CONTRACT_ID>
+ADMIN_SECRET_KEY=<YOUR_ADMIN_SECRET>
+TOKEN_ADDRESS=CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC
+FINDEX_POOL_ADDRESS=CAWE7KW36IFSPDIVTK6LDXAING2NWA3KPHIIBTVUGLPTSCQTIICTKIJV
+
+# SDP Configuration
+SDP_API_URL=http://localhost:8000
+SDP_API_KEY=<TOKEN_FROM_SDP_LOGIN>
+SDP_WALLET_ADDRESS=<YOUR_SDP_WALLET_ADDRESS>
+SDP_WALLET_SECRET=<YOUR_SDP_WALLET_SECRET>
+```
+
+**Install and Run:**
+```bash
+npm install
+npm run dev
+```
+
+### 4. Frontend Setup
+
+**Configure Environment:**
+```bash
+cd frontend
+cp .env.example .env
+```
+
+**Update `.env`:**
+```bash
+VITE_STELLAR_NETWORK=testnet
+VITE_SOROBAN_RPC_URL=https://soroban-testnet.stellar.org
+VITE_YIELD_CONTRACT_ID=<YOUR_DEPLOYED_CONTRACT_ID>
+VITE_BACKEND_API_URL=http://localhost:3003
+```
+
+**Install and Run:**
+```bash
+npm install
+npm run dev
+```
+
+### 5. Testing the Complete Flow
+
+**Test Workflow:**
+1. Upload employee CSV via frontend
+2. Lock payroll (deposits to DeFindex)
+3. Wait for payout date
+4. Release to SDP (withdraws from DeFindex + yield)
+5. SDP distributes to employees
+6. Employer claims yield
+
+**Important**: Never commit actual `.env` files or API keys to version control. All sensitive values should only exist in your local `.env` files.
 
   ## 7. Team
 
