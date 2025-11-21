@@ -14,7 +14,7 @@ Yield-generating mechanism for locked payroll funds.
 - Integrates with Blend Pool for yield generation (4% APY simulated)
 - Tracks yield earned during lock period
 - Releases principal to SDP for distribution
-- Allows employer to claim 30% of yield (70% goes to employees)
+- Allows employer to claim 100% of yield
 
 **Functions:**
 - `initialize(blend_pool: Address)` - Set up Blend Pool integration

@@ -34,4 +34,17 @@ const SERVER_CONFIG: ServerConfig = {
   ENV: process.env.NODE_ENV || "development",
 };
 
-export { SERVER_CONFIG, STELLAR_CONFIG };
+// Smart Contract Configuration
+const PAYDAY_YIELD_CONTRACT_ID = process.env.PAYDAY_YIELD_CONTRACT_ID || "";
+const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY || "";
+const TOKEN_ADDRESS = process.env.TOKEN_ADDRESS || "";
+const FINDEX_POOL_ADDRESS = process.env.FINDEX_POOL_ADDRESS || "";
+
+export { 
+  SERVER_CONFIG, 
+  STELLAR_CONFIG, 
+  PAYDAY_YIELD_CONTRACT_ID,
+  ADMIN_SECRET_KEY,
+  TOKEN_ADDRESS,
+  FINDEX_POOL_ADDRESS
+}; 

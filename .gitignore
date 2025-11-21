@@ -33,6 +33,9 @@ lerna-debug.log*
 # Local temporary files
 *.local.*
 
+# Hackathon rules
+# Hackathon_rules
+
 # OS-specific files
 .DS_Store
 Thumbs.db
