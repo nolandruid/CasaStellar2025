@@ -7,7 +7,40 @@
 // - Allowing the employer to collect the yield after the payout
 
 #![no_std]
-use soroban_sdk::{contract, contracterror, contractimpl, contracttype, symbol_short, token::TokenClient, Address, Env, Vec};
+use soroban_sdk::{
+    contract, contracterror, contractimpl, contracttype, symbol_short, 
+    token::TokenClient, Address, Env, Vec
+};
+
+mod defindex_client {
+    use soroban_sdk::{Address, Env, Vec, contractclient};
+    
+    /// DeFindex Vault Client Interface
+    /// Based on: https://github.com/paltalabs/defindex/blob/main/apps/contracts/vault/src/interface.rs
+    #[contractclient(name = "DefindexVaultClient")]
+    pub trait DefindexVault {
+        /// Deposit assets into the vault and receive vault shares
+        /// Returns: (actual_amounts_deposited, shares_minted, optional_investment_allocations)
+        fn deposit(
+            e: Env,
+            amounts_desired: Vec<i128>,
+            amounts_min: Vec<i128>,
+            from: Address,
+            invest: bool,
+        ) -> (Vec<i128>, i128);
+        
+        /// Withdraw assets from the vault by burning shares
+        /// Returns: Vector of withdrawn amounts per asset
+        fn withdraw(
+            e: Env,
+            df_amount: i128,
+            min_amounts_out: Vec<i128>,
+            from: Address,
+        ) -> Vec<i128>;
+    }
+}
+
+use defindex_client::DefindexVaultClient;
 
 // Storage TTL constants
 const INSTANCE_BUMP_AMOUNT: u32 = 7776000; // 90 days
@@ -27,6 +60,7 @@ fn check_nonnegative_amount(amount: i128) -> Result<(), Error> {
 pub struct PayrollLock {
     pub employer: Address,
     pub total_amount: i128,          // Total locked for payroll
+    pub vault_shares: i128,          // DeFindex vault shares received
     pub lock_date: u64,              // When funds were locked
     pub payout_date: u64,            // When defindex will distribute
     pub yield_earned: i128,          // Yield from defindex
@@ -122,18 +156,38 @@ impl PayrollYieldContract {
             &total_amount,
         );
         
-        // TODO: Deposit funds into defindex Pool for yield generation
-        // Uncomment when DeFindex integration is ready:
-        // let defindex_pool: Address = env.storage()
-        //     .instance()
-        //     .get(&DataKey::DefindexPoolAddress)
-        //     .ok_or(Error::NotInitialized)?;
-        // let defindex_client = DefindexClient::new(&env, &defindex_pool);
-        // defindex_client.deposit(&env.current_contract_address(), &total_amount);
+        // Get DeFindex vault address
+        let defindex_vault: Address = env.storage()
+            .instance()
+            .get(&DataKey::DefindexPoolAddress)
+            .ok_or(Error::NotInitialized)?;
+        
+        // Approve DeFindex vault to spend tokens
+        token_client.approve(
+            &env.current_contract_address(),
+            &defindex_vault,
+            &total_amount,
+            &(env.ledger().sequence() + 1000), // Approval valid for 1000 ledgers
+        );
+        
+        // Deposit into DeFindex vault for yield generation
+        let defindex_client = DefindexVaultClient::new(&env, &defindex_vault);
+        let mut amounts_vec = Vec::new(&env);
+        amounts_vec.push_back(total_amount);
+        let mut min_amounts = Vec::new(&env);
+        min_amounts.push_back(total_amount); // No slippage tolerance for single asset
+        
+        let (_, vault_shares) = defindex_client.deposit(
+            &amounts_vec,
+            &min_amounts,
+            &env.current_contract_address(),
+            &true, // Invest immediately
+        );
         
         let lock = PayrollLock {
             employer: employer.clone(),
             total_amount,
+            vault_shares,
             lock_date: env.ledger().timestamp(),
             payout_date,
             yield_earned: 0,
@@ -183,26 +237,30 @@ impl PayrollYieldContract {
             .get(&DataKey::TokenAddress)
             .ok_or(Error::NotInitialized)?;
         
-        // TODO: Withdraw from DeFindex vault to get principal + yield
-        // Uncomment when DeFindex integration is ready:
-        // let defindex_pool: Address = env.storage()
-        //     .instance()
-        //     .get(&DataKey::DefindexPoolAddress)
-        //     .ok_or(Error::NotInitialized)?;
-        // let defindex_client = DefindexClient::new(&env, &defindex_pool);
-        // let total_withdrawn = defindex_client.withdraw(&lock.total_amount);
-        // let yield_earned = total_withdrawn.checked_sub(lock.total_amount)
-        //     .ok_or(Error::InsufficientFunds)?;
+        // Get DeFindex vault address
+        let defindex_vault: Address = env.storage()
+            .instance()
+            .get(&DataKey::DefindexPoolAddress)
+            .ok_or(Error::NotInitialized)?;
         
-        // For now: Calculate yield earned (simulated 4% APY)
-        let days_locked = (env.ledger().timestamp() - lock.lock_date) / 86400;
-        let yield_earned = lock.total_amount
-            .checked_mul(4)
-            .and_then(|v| v.checked_mul(days_locked as i128))
-            .and_then(|v| v.checked_div(365 * 100))
-            .ok_or(Error::InsufficientFunds)?;
+        // Withdraw from DeFindex vault to get principal + yield
+        let defindex_client = DefindexVaultClient::new(&env, &defindex_vault);
+        let mut min_amounts_out = Vec::new(&env);
+        min_amounts_out.push_back(lock.total_amount); // Minimum: at least the principal
         
-        // Transfer principal to defindex for distribution
+        let withdrawn_amounts = defindex_client.withdraw(
+            &lock.vault_shares,
+            &min_amounts_out,
+            &env.current_contract_address(),
+        );
+        
+        // Calculate actual yield earned (total withdrawn - principal)
+        let total_withdrawn = withdrawn_amounts.get(0).unwrap_or(0);
+        let yield_earned = total_withdrawn
+            .checked_sub(lock.total_amount)
+            .unwrap_or(0); // If no yield, default to 0
+        
+        // Transfer principal to defindex distribution contract
         let token_client = TokenClient::new(&env, &token);
         token_client.transfer(
             &env.current_contract_address(),
@@ -215,7 +273,10 @@ impl PayrollYieldContract {
         lock.funds_released = true;
         env.storage().instance().set(&DataKey::PayrollLock(employer.clone(), batch_id), &lock);
         
-        env.events().publish((symbol_short!("released"), batch_id), defindex_address);
+        env.events().publish(
+            (symbol_short!("released"), batch_id, yield_earned), 
+            defindex_address
+        );
         Ok(yield_earned)
     }
     
