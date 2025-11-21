@@ -3,21 +3,27 @@
  * Handles all interactions with the PayDay Yield Soroban contract
  */
 
-import {
+import * as StellarSdk from '@stellar/stellar-sdk';
+import { STELLAR_CONFIG, PAYDAY_YIELD_CONTRACT_ID, ADMIN_SECRET_KEY, TOKEN_ADDRESS, FINDEX_POOL_ADDRESS } from '../config/constants';
+
+const {
   Contract,
-  SorobanRpc,
   TransactionBuilder,
   Networks,
   BASE_FEE,
   Keypair,
-  Operation,
   nativeToScVal,
   scValToNative,
-} from '@stellar/stellar-sdk';
-import { STELLAR_CONFIG, PAYDAY_YIELD_CONTRACT_ID, ADMIN_SECRET_KEY, TOKEN_ADDRESS, FINDEX_POOL_ADDRESS } from '../config/constants';
+  Address,
+  Soroban,
+  Horizon,
+} = StellarSdk;
 
 // Initialize Soroban RPC Server
-const server = new SorobanRpc.Server(STELLAR_CONFIG.SOROBAN_RPC_URL);
+const sorobanServer = new Soroban(STELLAR_CONFIG.SOROBAN_RPC_URL);
+
+// Initialize Horizon Server for account operations
+const horizonServer = new Horizon.Server('https://horizon-testnet.stellar.org');
 
 // Initialize contract
 const contract = new Contract(PAYDAY_YIELD_CONTRACT_ID);
@@ -46,7 +52,7 @@ interface PayrollLock {
  * Helper: Build and submit a transaction
  */
 async function buildAndSubmitTransaction(
-  operation: Operation,
+  operation: any,
   memo?: string
 ): Promise<string> {
   if (!adminKeypair) {
@@ -54,7 +60,7 @@ async function buildAndSubmitTransaction(
   }
 
   // Get account
-  const account = await server.getAccount(adminKeypair.publicKey());
+  const account = await horizonServer.loadAccount(adminKeypair.publicKey());
 
   // Build transaction
   const transaction = new TransactionBuilder(account, {
@@ -66,31 +72,31 @@ async function buildAndSubmitTransaction(
     .build();
 
   // Simulate transaction first
-  const simulated = await server.simulateTransaction(transaction);
+  const simulated = await sorobanServer.simulateTransaction(transaction);
   
-  if (SorobanRpc.Api.isSimulationError(simulated)) {
+  if (Soroban.Api.isSimulationError(simulated)) {
     throw new Error(`Simulation failed: ${simulated.error}`);
   }
 
   // Prepare transaction
-  const prepared = SorobanRpc.assembleTransaction(transaction, simulated).build();
+  const prepared = Soroban.assembleTransaction(transaction, simulated).build();
 
   // Sign transaction
   prepared.sign(adminKeypair);
 
   // Submit transaction
-  const result = await server.sendTransaction(prepared);
+  const result = await sorobanServer.sendTransaction(prepared);
 
   if (result.status === 'PENDING') {
     // Poll for result
-    let getResponse = await server.getTransaction(result.hash);
+    let getResponse = await sorobanServer.getTransaction(result.hash);
     
-    while (getResponse.status === SorobanRpc.Api.GetTransactionStatus.NOT_FOUND) {
+    while (getResponse.status === Soroban.Api.GetTransactionStatus.NOT_FOUND) {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      getResponse = await server.getTransaction(result.hash);
+      getResponse = await sorobanServer.getTransaction(result.hash);
     }
 
-    if (getResponse.status === SorobanRpc.Api.GetTransactionStatus.SUCCESS) {
+    if (getResponse.status === Soroban.Api.GetTransactionStatus.SUCCESS) {
       return result.hash;
     } else {
       throw new Error(`Transaction failed: ${getResponse.status}`);
@@ -123,10 +129,18 @@ export async function lockPayroll(
     }
 
     // Build contract call
+    // Convert addresses properly for Soroban
+    const employerScVal = employerAddress.startsWith('G')
+      ? nativeToScVal(Keypair.fromPublicKey(employerAddress).publicKey(), { type: 'address' })
+      : new Address(employerAddress).toScVal();
+    const tokenScVal = TOKEN_ADDRESS.startsWith('G')
+      ? nativeToScVal(Keypair.fromPublicKey(TOKEN_ADDRESS).publicKey(), { type: 'address' })
+      : new Address(TOKEN_ADDRESS).toScVal();
+    
     const operation = contract.call(
       'lock_payroll',
-      nativeToScVal(employerAddress, { type: 'address' }),
-      nativeToScVal(TOKEN_ADDRESS, { type: 'address' }),
+      employerScVal,
+      tokenScVal,
       nativeToScVal(totalAmount, { type: 'i128' }),
       nativeToScVal(payoutDate, { type: 'u64' })
     );
@@ -164,19 +178,26 @@ export async function releaseToFindex(
     }
 
     // Build contract call
+    const targetScVal = targetAddress.startsWith('G')
+      ? nativeToScVal(Keypair.fromPublicKey(targetAddress).publicKey(), { type: 'address' })
+      : new Address(targetAddress).toScVal();
+    const tokenScVal = TOKEN_ADDRESS.startsWith('G')
+      ? nativeToScVal(Keypair.fromPublicKey(TOKEN_ADDRESS).publicKey(), { type: 'address' })
+      : new Address(TOKEN_ADDRESS).toScVal();
+    
     const operation = contract.call(
       'release_to_findex',
-      nativeToScVal(targetAddress, { type: 'address' }),
-      nativeToScVal(TOKEN_ADDRESS, { type: 'address' })
+      targetScVal,
+      tokenScVal
     );
 
     const txHash = await buildAndSubmitTransaction(operation);
     
     // Get the yield earned from transaction result
-    const tx = await server.getTransaction(txHash);
+    const tx = await sorobanServer.getTransaction(txHash);
     let yieldEarned = '0';
     
-    if (tx.status === SorobanRpc.Api.GetTransactionStatus.SUCCESS && tx.returnValue) {
+    if (tx.status === Soroban.Api.GetTransactionStatus.SUCCESS && tx.returnValue) {
       yieldEarned = scValToNative(tx.returnValue).toString();
     }
 
@@ -206,7 +227,7 @@ export async function getPayrollStatus(): Promise<PayrollLock> {
       throw new Error('Admin keypair not configured');
     }
 
-    const account = await server.getAccount(adminKeypair.publicKey());
+    const account = await horizonServer.loadAccount(adminKeypair.publicKey());
 
     const transaction = new TransactionBuilder(account, {
       fee: BASE_FEE,
@@ -217,9 +238,9 @@ export async function getPayrollStatus(): Promise<PayrollLock> {
       .build();
 
     // Simulate to get result (no need to submit for read-only)
-    const simulated = await server.simulateTransaction(transaction);
+    const simulated = await sorobanServer.simulateTransaction(transaction);
     
-    if (SorobanRpc.Api.isSimulationError(simulated)) {
+    if (Soroban.Api.isSimulationError(simulated)) {
       throw new Error(`Failed to get status: ${simulated.error}`);
     }
 
@@ -265,19 +286,26 @@ export async function claimYield(
     }
 
     // Build contract call
+    const employerScVal = employerAddress.startsWith('G')
+      ? nativeToScVal(Keypair.fromPublicKey(employerAddress).publicKey(), { type: 'address' })
+      : new Address(employerAddress).toScVal();
+    const tokenScVal = TOKEN_ADDRESS.startsWith('G')
+      ? nativeToScVal(Keypair.fromPublicKey(TOKEN_ADDRESS).publicKey(), { type: 'address' })
+      : new Address(TOKEN_ADDRESS).toScVal();
+    
     const operation = contract.call(
       'claim_yield',
-      nativeToScVal(employerAddress, { type: 'address' }),
-      nativeToScVal(TOKEN_ADDRESS, { type: 'address' })
+      employerScVal,
+      tokenScVal
     );
 
     const txHash = await buildAndSubmitTransaction(operation);
     
     // Get the employer share from transaction result
-    const tx = await server.getTransaction(txHash);
+    const tx = await sorobanServer.getTransaction(txHash);
     let employerShare = '0';
     
-    if (tx.status === SorobanRpc.Api.GetTransactionStatus.SUCCESS && tx.returnValue) {
+    if (tx.status === Soroban.Api.GetTransactionStatus.SUCCESS && tx.returnValue) {
       employerShare = scValToNative(tx.returnValue).toString();
     }
 
@@ -306,7 +334,7 @@ export async function calculateCurrentYield(): Promise<string> {
       throw new Error('Admin keypair not configured');
     }
 
-    const account = await server.getAccount(adminKeypair.publicKey());
+    const account = await horizonServer.loadAccount(adminKeypair.publicKey());
 
     const transaction = new TransactionBuilder(account, {
       fee: BASE_FEE,
@@ -317,9 +345,9 @@ export async function calculateCurrentYield(): Promise<string> {
       .build();
 
     // Simulate to get result
-    const simulated = await server.simulateTransaction(transaction);
+    const simulated = await sorobanServer.simulateTransaction(transaction);
     
-    if (SorobanRpc.Api.isSimulationError(simulated)) {
+    if (Soroban.Api.isSimulationError(simulated)) {
       throw new Error(`Failed to calculate yield: ${simulated.error}`);
     }
 
