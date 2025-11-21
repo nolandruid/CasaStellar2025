@@ -270,7 +270,7 @@ export async function getPayrollStatus(): Promise<PayrollLock> {
 }
 
 /**
- * Employer claims their 30% yield share
+ * Employer claims their 100% yield share
  * @param employerAddress - Employer's Stellar address
  * @returns Object with transaction hash and employer share amount
  */
@@ -310,7 +310,7 @@ export async function claimYield(
     }
 
     console.log(`✅ Yield claimed. TX: ${txHash}`);
-    console.log(`   Employer Share (30%): ${employerShare}`);
+    console.log(`   Employer Share (100%): ${employerShare}`);
     
     return { txHash, employerShare };
   } catch (error) {
