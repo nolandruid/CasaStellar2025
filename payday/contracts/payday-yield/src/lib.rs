@@ -201,3 +201,8 @@ impl PayrollYieldContract {
         
         // Calculate yield based on time elapsed (4% APY)
         let days_locked = (env.ledger().timestamp() - lock.lock_date) / 86400;
+        let current_yield = (lock.total_amount * 4 * days_locked as i128) / (365 * 100);
+        
+        Ok(current_yield)
+    }
+}
