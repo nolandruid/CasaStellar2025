@@ -24,7 +24,7 @@
 
   Why is this problem urgent now?
   - Today, LATAM’s workforce is more remote, diverse, and digitally savvy than ever, and competition for talent is fierce. Employees and suppliers are demanding payment certainty—not just faster payouts, but guaranteed, automated, and provable on-time delivery. Businesses that continually delay or rely on opaque, manual processes lose credibility, risk regulatory penalties, and see top talent leave.
-  StellarPay leverages the breakthrough of Soroban smart contracts to make true automation, yield on idle payroll, and zero-knowledge proof of timeliness possible for the first time. In a region where financial stress and payment anxiety hit hardest, automating salary delivery isn't just efficiency—it's critical for survival. The market is shifting now, and companies that act today will lead; those who wait will lose trust and be left behind.
+  PayDay leverages the breakthrough of Soroban smart contracts to make true automation, yield on idle payroll, and zero-knowledge proof of timeliness possible for the first time. In a region where financial stress and payment anxiety hit hardest, automating salary delivery isn't just efficiency—it's critical for survival. The market is shifting now, and companies that act today will lead; those who wait will lose trust and be left behind.
 
 
   ## 2. Target User and User Need
@@ -40,7 +40,7 @@
 
   ### 3.1 Main Idea
 
-  StellarPay is a Soroban-powered payroll platform for LATAM businesses that transforms idle payroll funds into productive assets. Instead of letting cash sit for weeks before payday, companies deposit funds into yield-generating smart contracts, earning 4-6% APY in DeFi protocols while payroll is scheduled. On payday, Soroban automates exact, on-time distribution in USDC via Stellar’s network—delivering instant, transparent payments without manual intervention or trust in human processes.
+  PayDay is a Soroban-powered payroll platform for LATAM businesses that transforms idle payroll funds into productive assets. Instead of letting cash sit for weeks before payday, companies deposit funds into yield-generating smart contracts, earning 4-6% APY in DeFi protocols while payroll is scheduled. On payday, Soroban automates exact, on-time distribution in USDC via Stellar’s network—delivering instant, transparent payments without manual intervention or trust in human processes.
 
   - What sets PayDay apart:
   Zero-knowledge proofs publicly verify payment timing and compliance, proving that every salary was paid on schedule to every recipient—without exposing amounts, employee identities, or company payroll sizes, thereby resolving the transparency vs. privacy paradox.
