@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard'
 import Status from './pages/Status'
 import Employees from './pages/Employees'
 import Settings from './pages/Settings'
+import PaymentProof from './pages/PaymentProof'
 import SplashScreen from './components/SplashScreen'
 import LoginScreen from './components/LoginScreen'
 import './App.css'
@@ -79,6 +80,7 @@ function App() {
             <Route path="/employees" element={<Employees />} />
             <Route path="/status" element={<Status />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/payment-proof" element={<PaymentProof />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
