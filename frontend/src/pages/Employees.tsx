@@ -1,50 +1,30 @@
 import { useState } from 'react'
+import { mockEmployees, type Employee } from '../data/mockData'
 import './Employees.css'
 
-interface Employee {
-  id: string
-  fullName: string
-  walletAddress: string
-  monthlySalary: number
-  addedDate: string
-}
-
 export default function Employees() {
-  const [employees, setEmployees] = useState<Employee[]>([
-    {
-      id: '1',
-      fullName: 'John Doe',
-      walletAddress: 'GAXYZ...ABC123',
-      monthlySalary: 3500,
-      addedDate: 'May 28, 2024'
-    },
-    {
-      id: '2',
-      fullName: 'Jane Smith',
-      walletAddress: 'GBDEF...XYZ789',
-      monthlySalary: 4200,
-      addedDate: 'May 25, 2024'
-    }
-  ])
+  const [employees, setEmployees] = useState<Employee[]>(mockEmployees)
 
   const [showAddModal, setShowAddModal] = useState(false)
   const [newEmployee, setNewEmployee] = useState({
     fullName: '',
     walletAddress: '',
-    monthlySalary: ''
+    monthlySalary: '',
+    department: ''
   })
 
   const handleAddEmployee = () => {
-    if (newEmployee.fullName && newEmployee.walletAddress && newEmployee.monthlySalary) {
+    if (newEmployee.fullName && newEmployee.walletAddress && newEmployee.monthlySalary && newEmployee.department) {
       const employee: Employee = {
         id: Date.now().toString(),
         fullName: newEmployee.fullName,
         walletAddress: newEmployee.walletAddress,
         monthlySalary: parseFloat(newEmployee.monthlySalary),
-        addedDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+        addedDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+        department: newEmployee.department
       }
       setEmployees([...employees, employee])
-      setNewEmployee({ fullName: '', walletAddress: '', monthlySalary: '' })
+      setNewEmployee({ fullName: '', walletAddress: '', monthlySalary: '', department: '' })
       setShowAddModal(false)
     }
   }
@@ -59,14 +39,15 @@ export default function Employees() {
         const newEmployees: Employee[] = []
 
         lines.forEach(line => {
-          const [fullName, walletAddress, salary] = line.split(',').map(s => s.trim())
+          const [fullName, walletAddress, salary, department] = line.split(',').map(s => s.trim())
           if (fullName && walletAddress && salary) {
             newEmployees.push({
               id: Date.now().toString() + Math.random(),
               fullName,
               walletAddress,
               monthlySalary: parseFloat(salary),
-              addedDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+              addedDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+              department: department || 'General'
             })
           }
         })
@@ -78,9 +59,9 @@ export default function Employees() {
   }
 
   const handleExportCSV = () => {
-    const headers = ['Full Name,Wallet Address,Monthly Salary']
+    const headers = ['Full Name,Wallet Address,Monthly Salary,Department']
     const rows = employees.map(emp => 
-      `${emp.fullName},${emp.walletAddress},${emp.monthlySalary}`
+      `${emp.fullName},${emp.walletAddress},${emp.monthlySalary},${emp.department}`
     )
     const csv = [headers, ...rows].join('\n')
     
@@ -165,7 +146,7 @@ export default function Employees() {
             <div className="employee-info">
               <h3 className="employee-name">{employee.fullName}</h3>
               <p className="employee-wallet">{employee.walletAddress}</p>
-              <p className="employee-date">Added: {employee.addedDate}</p>
+              <p className="employee-date">{employee.department} • Added: {employee.addedDate}</p>
             </div>
             <div className="employee-salary">
               <p className="salary-label">Monthly Salary</p>
@@ -231,6 +212,17 @@ export default function Employees() {
                   placeholder="3500"
                   value={newEmployee.monthlySalary}
                   onChange={(e) => setNewEmployee({ ...newEmployee, monthlySalary: e.target.value })}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Department</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  placeholder="Engineering"
+                  value={newEmployee.department}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, department: e.target.value })}
                 />
               </div>
             </div>

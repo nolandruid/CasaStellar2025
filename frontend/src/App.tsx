@@ -60,7 +60,11 @@ function App() {
           <nav className="main-nav">
             <div className="nav-content">
               <Link to="/" className="nav-logo">
-                <span className="logo-icon">💰</span>
+                <img 
+                  src="/assets/paydat_logo.jpeg" 
+                  alt="PayDay" 
+                  className="logo-nav-image"
+                />
                 <span className="logo-text">PayDay</span>
               </Link>
               <div className="nav-links">

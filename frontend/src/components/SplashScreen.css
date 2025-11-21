@@ -30,6 +30,16 @@
   animation: slideDown 0.8s ease-out;
 }
 
+.logo-image {
+  width: 200px;
+  height: auto;
+  border-radius: 1rem;
+  box-shadow: 0 10px 40px rgba(16, 185, 129, 0.3);
+  animation: pulse 2s ease-in-out infinite;
+  background: white;
+  padding: 1rem;
+}
+
 .logo-icon {
   width: 80px;
   height: 80px;
@@ -154,6 +164,10 @@
 
 /* Responsive */
 @media (max-width: 640px) {
+  .logo-image {
+    width: 160px;
+  }
+
   .logo-icon {
     width: 64px;
     height: 64px;

@@ -37,6 +37,13 @@
   margin-bottom: 2rem;
 }
 
+.logo-image-login {
+  width: 140px;
+  height: auto;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
 .logo-icon-login {
   width: 48px;
   height: 48px;
