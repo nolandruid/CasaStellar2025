@@ -4,7 +4,8 @@
  */
 
 import * as StellarSdk from '@stellar/stellar-sdk';
-import { STELLAR_CONFIG, PAYDAY_YIELD_CONTRACT_ID, ADMIN_SECRET_KEY, TOKEN_ADDRESS, FINDEX_POOL_ADDRESS } from '../config/constants';
+import { STELLAR_CONFIG, PAYDAY_YIELD_CONTRACT_ID, ADMIN_SECRET_KEY, TOKEN_ADDRESS, FINDEX_POOL_ADDRESS, SDP_CONFIG } from '../config/constants';
+import sdpService from './sdp';
 
 const {
   Contract,
@@ -41,6 +42,7 @@ if (ADMIN_SECRET_KEY) {
 interface PayrollLock {
   employer: string;
   total_amount: string;
+  vault_shares: string;
   lock_date: number;
   payout_date: number;
   yield_earned: string;
@@ -107,17 +109,17 @@ async function buildAndSubmitTransaction(
 }
 
 /**
- * Lock payroll funds in the contract
+ * Lock payroll funds in the contract and deposit to DeFindex
  * @param employerAddress - Employer's Stellar address
  * @param totalAmount - Total amount to lock (in stroops)
  * @param payoutDate - Unix timestamp for payout date
- * @returns Transaction hash
+ * @returns Object with transaction hash and batch_id
  */
 export async function lockPayroll(
   employerAddress: string,
   totalAmount: bigint,
   payoutDate: number
-): Promise<string> {
+): Promise<{ txHash: string; batchId: string }> {
   try {
     console.log('🔒 Locking payroll...');
     console.log(`   Employer: ${employerAddress}`);
@@ -128,27 +130,31 @@ export async function lockPayroll(
       throw new Error('TOKEN_ADDRESS not configured in environment');
     }
 
-    // Build contract call
-    // Convert addresses properly for Soroban
+    // Build contract call (updated to new signature without token parameter)
     const employerScVal = employerAddress.startsWith('G')
       ? nativeToScVal(Keypair.fromPublicKey(employerAddress).publicKey(), { type: 'address' })
       : new Address(employerAddress).toScVal();
-    const tokenScVal = TOKEN_ADDRESS.startsWith('G')
-      ? nativeToScVal(Keypair.fromPublicKey(TOKEN_ADDRESS).publicKey(), { type: 'address' })
-      : new Address(TOKEN_ADDRESS).toScVal();
     
     const operation = contract.call(
       'lock_payroll',
       employerScVal,
-      tokenScVal,
       nativeToScVal(totalAmount, { type: 'i128' }),
       nativeToScVal(payoutDate, { type: 'u64' })
     );
 
     const txHash = await buildAndSubmitTransaction(operation);
-    console.log(`✅ Payroll locked. TX: ${txHash}`);
     
-    return txHash;
+    // Get the batch_id from transaction result
+    const tx = await sorobanServer.getTransaction(txHash);
+    let batchId = '0';
+    
+    if (tx.status === Soroban.Api.GetTransactionStatus.SUCCESS && tx.returnValue) {
+      batchId = scValToNative(tx.returnValue).toString();
+    }
+    
+    console.log(`✅ Payroll locked. TX: ${txHash}, Batch ID: ${batchId}`);
+    
+    return { txHash, batchId };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error('❌ Failed to lock payroll:', errorMessage);
@@ -157,38 +163,40 @@ export async function lockPayroll(
 }
 
 /**
- * Release funds to Findex for distribution
- * @param findexAddress - Findex pool address (or employee distribution address)
+ * Release funds to SDP (Stellar Disbursement Platform) for employee distribution
+ * Withdraws from DeFindex vault and sends principal to SDP wallet
+ * @param employerAddress - Employer's Stellar address
+ * @param batchId - Batch ID from lock_payroll
  * @returns Object with transaction hash and yield earned
  */
-export async function releaseToFindex(
-  findexAddress?: string
+export async function releaseToSDP(
+  employerAddress: string,
+  batchId: string
 ): Promise<{ txHash: string; yieldEarned: string }> {
   try {
-    console.log('🚀 Releasing payroll to Findex...');
+    console.log('🚀 Releasing payroll to SDP...');
+    console.log(`   Employer: ${employerAddress}`);
+    console.log(`   Batch ID: ${batchId}`);
 
-    const targetAddress = findexAddress || FINDEX_POOL_ADDRESS;
+    const sdpWalletAddress = SDP_CONFIG.WALLET_ADDRESS;
     
-    if (!targetAddress) {
-      throw new Error('Findex address not provided and FINDEX_POOL_ADDRESS not configured');
+    if (!sdpWalletAddress) {
+      throw new Error('SDP_WALLET_ADDRESS not configured in environment');
     }
 
-    if (!TOKEN_ADDRESS) {
-      throw new Error('TOKEN_ADDRESS not configured in environment');
-    }
-
-    // Build contract call
-    const targetScVal = targetAddress.startsWith('G')
-      ? nativeToScVal(Keypair.fromPublicKey(targetAddress).publicKey(), { type: 'address' })
-      : new Address(targetAddress).toScVal();
-    const tokenScVal = TOKEN_ADDRESS.startsWith('G')
-      ? nativeToScVal(Keypair.fromPublicKey(TOKEN_ADDRESS).publicKey(), { type: 'address' })
-      : new Address(TOKEN_ADDRESS).toScVal();
+    // Build contract call (updated to new signature)
+    const employerScVal = employerAddress.startsWith('G')
+      ? nativeToScVal(Keypair.fromPublicKey(employerAddress).publicKey(), { type: 'address' })
+      : new Address(employerAddress).toScVal();
+    const sdpWalletScVal = sdpWalletAddress.startsWith('G')
+      ? nativeToScVal(Keypair.fromPublicKey(sdpWalletAddress).publicKey(), { type: 'address' })
+      : new Address(sdpWalletAddress).toScVal();
     
     const operation = contract.call(
-      'release_to_findex',
-      targetScVal,
-      tokenScVal
+      'release_to_sdp',
+      employerScVal,
+      nativeToScVal(BigInt(batchId), { type: 'u64' }),
+      sdpWalletScVal
     );
 
     const txHash = await buildAndSubmitTransaction(operation);
@@ -201,13 +209,13 @@ export async function releaseToFindex(
       yieldEarned = scValToNative(tx.returnValue).toString();
     }
 
-    console.log(`✅ Payroll released. TX: ${txHash}`);
+    console.log(`✅ Payroll released to SDP. TX: ${txHash}`);
     console.log(`   Yield Earned: ${yieldEarned}`);
     
     return { txHash, yieldEarned };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('❌ Failed to release payroll:', errorMessage);
+    console.error('❌ Failed to release payroll to SDP:', errorMessage);
     throw error;
   }
 }
@@ -256,6 +264,7 @@ export async function getPayrollStatus(): Promise<PayrollLock> {
     return {
       employer: result.employer,
       total_amount: result.total_amount.toString(),
+      vault_shares: result.vault_shares?.toString() || '0',
       lock_date: result.lock_date,
       payout_date: result.payout_date,
       yield_earned: result.yield_earned.toString(),

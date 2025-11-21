@@ -22,10 +22,17 @@ Yield-generating mechanism for locked payroll funds with DeFindex vault integrat
 **Functions:**
 - `initialize(defindex_vault: Address, token: Address)` - Set up DeFindex vault and token
 - `lock_payroll(employer, amount, payout_date) -> batch_id` - Lock funds and deposit to DeFindex
-- `release_to_defindex(employer, batch_id, distribution_address) -> yield_earned` - Withdraw from vault and release principal
+- `release_to_sdp(employer, batch_id, sdp_wallet_address) -> yield_earned` - Withdraw from vault and send principal to SDP
 - `claim_yield(employer, batch_id) -> yield_amount` - Employer claims their yield share
 - `get_status(employer, batch_id) -> PayrollLock` - Get specific batch lock status
 - `calculate_current_yield(employer, batch_id) -> i128` - Check yield progress for a batch
+
+**Integration with SDP:**
+This contract works with Stellar Disbursement Platform (SDP) for employee distribution:
+1. Employer locks payroll funds (generates yield in DeFindex)
+2. On payout date, principal is released to SDP wallet
+3. SDP handles mass distribution to employees from CSV
+4. Employer claims yield earned during lock period
 
 ## Building Contracts
 

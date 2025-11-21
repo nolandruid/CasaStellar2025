@@ -2,8 +2,9 @@
 // overview of its responsibilities:
 //
 // - Locking employer funds until the payout date
-// - Integrating with defindex to generate yield
+// - Integrating with DeFindex vault to generate yield
 // - Tracking the yield earned during the lock period
+// - Releasing principal to SDP (Stellar Disbursement Platform) for employee distribution
 // - Allowing the employer to collect the yield after the payout
 
 #![no_std]
@@ -205,12 +206,13 @@ impl PayrollYieldContract {
         Ok(batch_id)
     }
     
-    /// Release principal to defindex for distribution (on payout date)
-    pub fn release_to_defindex(
+    /// Release principal to SDP (Stellar Disbursement Platform) for employee distribution
+    /// Withdraws funds from DeFindex vault and transfers principal to SDP wallet
+    pub fn release_to_sdp(
         env: Env,
         employer: Address,
         batch_id: u64,
-        defindex_address: Address,
+        sdp_wallet_address: Address,
     ) -> Result<i128, Error> {
         // Extend storage TTL
         env.storage()
@@ -260,11 +262,11 @@ impl PayrollYieldContract {
             .checked_sub(lock.total_amount)
             .unwrap_or(0); // If no yield, default to 0
         
-        // Transfer principal to defindex distribution contract
+        // Transfer principal to SDP wallet for employee distribution
         let token_client = TokenClient::new(&env, &token);
         token_client.transfer(
             &env.current_contract_address(),
-            &defindex_address,
+            &sdp_wallet_address,
             &lock.total_amount,
         );
         
@@ -275,7 +277,7 @@ impl PayrollYieldContract {
         
         env.events().publish(
             (symbol_short!("released"), batch_id, yield_earned), 
-            defindex_address
+            sdp_wallet_address
         );
         Ok(yield_earned)
     }
