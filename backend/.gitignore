@@ -34,4 +34,6 @@ coverage/
 .DS_Store
 Thumbs.db
 
-/src/generated/prisma
+# Generated files
+/generated/*
+/src/generated/*

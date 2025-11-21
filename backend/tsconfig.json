@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
-    // Target and Module
-    "target": "ES2020",
-    "module": "commonjs",
-    "lib": ["ES2020"],
+    // Target and Module (Updated for Prisma 7 / ESM)
+    "target": "ES2023",
+    "module": "ESNext",
+    "lib": ["ES2023"],
 
     // Output
     "outDir": "./dist",

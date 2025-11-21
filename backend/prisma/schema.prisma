@@ -6,7 +6,7 @@
 
 generator client {
   provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  output   = "../generated/prisma/client"
 }
 
 datasource db {
@@ -14,10 +14,10 @@ datasource db {
 }
 
 model Employee {
-  id            String  @id @default(uuid())
+  id            String @id @default(uuid())
   firstName     String
   lastName      String
-  salary        Int
+  salary        Int // Cents
   walletAddress String
 
   @@map("employees")

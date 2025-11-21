@@ -3,15 +3,19 @@
  * Payroll System with Stellar/Soroban Integration
  */
 
-import 'dotenv/config';
-import express, { Express, Request, Response, NextFunction } from 'express';
-import bodyParser from 'body-parser';
-import cors from 'cors';
-import { rpc } from '@stellar/stellar-sdk';
+import { rpc } from "@stellar/stellar-sdk";
+import bodyParser from "body-parser";
+import cors from "cors";
+import "dotenv/config";
+import express, { Express, NextFunction, Request, Response } from "express";
 
-import { SERVER_CONFIG } from './config/constants';
-import { initializeSorobanServer, checkSorobanHealth } from './services/stellar';
-import payrollRoutes from './routes/payroll';
+import { SERVER_CONFIG } from "./config/constants";
+import employeeRoutes from "./routes/employee";
+import payrollRoutes from "./routes/payroll";
+import {
+  checkSorobanHealth,
+  initializeSorobanServer,
+} from "./services/stellar";
 
 // Initialize Express app
 const app: Express = express();
@@ -40,7 +44,7 @@ let sorobanServer: rpc.Server | null = null;
  */
 async function initializeApp(): Promise<void> {
   try {
-    console.log('🚀 Initializing Payroll Backend Server...\n');
+    console.log("🚀 Initializing Payroll Backend Server...\n");
 
     // Connect to Soroban
     sorobanServer = initializeSorobanServer();
@@ -51,16 +55,18 @@ async function initializeApp(): Promise<void> {
     // Make sorobanServer available in app locals
     app.locals.sorobanServer = sorobanServer;
 
-    console.log('✓ App initialization complete\n');
+    console.log("✓ App initialization complete\n");
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('✗ Failed to initialize app:', errorMessage);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    console.error("✗ Failed to initialize app:", errorMessage);
     process.exit(1);
   }
 }
 
 // Routes
-app.use('/', payrollRoutes);
+app.use("/", payrollRoutes);
+app.use("/", employeeRoutes);
 
 /**
  * 404 Handler
@@ -68,7 +74,7 @@ app.use('/', payrollRoutes);
 app.use((req: Request, res: Response): void => {
   res.status(404).json({
     success: false,
-    error: 'Endpoint not found',
+    error: "Endpoint not found",
     path: req.path,
   });
 });
@@ -77,10 +83,10 @@ app.use((req: Request, res: Response): void => {
  * Error Handler
  */
 app.use((err: Error, req: Request, res: Response, next: NextFunction): void => {
-  console.error('Server Error:', err.message);
+  console.error("Server Error:", err.message);
   res.status(500).json({
     success: false,
-    error: 'Internal server error',
+    error: "Internal server error",
     message: err.message,
   });
 });
@@ -100,8 +106,9 @@ async function startServer(): Promise<void> {
       `);
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('Failed to start server:', errorMessage);
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    console.error("Failed to start server:", errorMessage);
     process.exit(1);
   }
 }
@@ -110,13 +117,13 @@ async function startServer(): Promise<void> {
 startServer();
 
 // Graceful shutdown
-process.on('SIGTERM', (): void => {
-  console.log('SIGTERM signal received: closing HTTP server');
+process.on("SIGTERM", (): void => {
+  console.log("SIGTERM signal received: closing HTTP server");
   process.exit(0);
 });
 
-process.on('SIGINT', (): void => {
-  console.log('SIGINT signal received: closing HTTP server');
+process.on("SIGINT", (): void => {
+  console.log("SIGINT signal received: closing HTTP server");
   process.exit(0);
 });
 
