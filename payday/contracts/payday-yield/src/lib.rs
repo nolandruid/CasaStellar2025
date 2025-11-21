@@ -2,7 +2,7 @@
 // overview of its responsibilities:
 //
 // - Locking employer funds until the payout date
-// - Integrating with Blend Pool to generate yield
+// - Integrating with Findex to generate yield
 // - Tracking the yield earned during the lock period
 // - Allowing the employer to collect the yield after the payout
 
@@ -16,16 +16,16 @@ pub struct PayrollLock {
     pub employer: Address,
     pub total_amount: i128,          // Total locked for payroll
     pub lock_date: u64,              // When funds were locked
-    pub payout_date: u64,            // When SDP will distribute
-    pub yield_earned: i128,          // Yield from Blend Pool
-    pub funds_released: bool,        // Released to SDP for distribution
+    pub payout_date: u64,            // When Findex will distribute
+    pub yield_earned: i128,          // Yield from Findex
+    pub funds_released: bool,        // Released to Findex for distribution
     pub yield_claimed: bool,         // Employer claimed yield
 }
 
 #[contracttype]
 pub enum DataKey {
     PayrollLock,
-    BlendPoolAddress,
+    FindexPoolAddress,
 }
 
 #[contracterror]
@@ -46,12 +46,12 @@ pub struct PayrollYieldContract;
 #[contractimpl]
 impl PayrollYieldContract {
     
-    /// Initialize contract with Blend Pool address
-    pub fn initialize(env: Env, blend_pool: Address) {
-        env.storage().instance().set(&DataKey::BlendPoolAddress, &blend_pool);
+    /// Initialize contract with Findex Pool address
+    pub fn initialize(env: Env, findex_pool: Address) {
+        env.storage().instance().set(&DataKey::FindexPoolAddress, &findex_pool);
     }
     
-    /// Employer locks funds for payroll (before sending to SDP)
+    /// Employer locks funds for payroll (before sending to Findex)
     pub fn lock_payroll(
         env: Env,
         employer: Address,
@@ -79,7 +79,7 @@ impl PayrollYieldContract {
             &total_amount,
         );
         
-        // TODO: Deposit funds into Blend Pool for yield generation
+        // TODO: Deposit funds into Findex Pool for yield generation
         // For hackathon: funds stay in contract, yield calculated on release
         
         let lock = PayrollLock {
@@ -98,10 +98,10 @@ impl PayrollYieldContract {
         Ok(())
     }
     
-    /// Release principal to SDP for distribution (on payout date)
-    pub fn release_to_sdp(
+    /// Release principal to Findex for distribution (on payout date)
+    pub fn release_to_findex(
         env: Env,
-        sdp_address: Address,
+        findex_address: Address,
         token: Address,
     ) -> Result<i128, Error> {
         let mut lock: PayrollLock = env.storage().instance()
@@ -119,15 +119,15 @@ impl PayrollYieldContract {
         }
         
         // Calculate yield earned (simulated 4% APY)
-        // TODO: Replace with actual Blend Pool withdrawal
+        // TODO: Replace with actual Findex Pool withdrawal
         let days_locked = (env.ledger().timestamp() - lock.lock_date) / 86400;
         let yield_earned = (lock.total_amount * 4 * days_locked as i128) / (365 * 100);
         
-        // Transfer principal to SDP for distribution
+        // Transfer principal to Findex for distribution
         let token_client = TokenClient::new(&env, &token);
         token_client.transfer(
             &env.current_contract_address(),
-            &sdp_address,
+            &findex_address,
             &lock.total_amount,
         );
         
@@ -136,7 +136,7 @@ impl PayrollYieldContract {
         lock.funds_released = true;
         env.storage().instance().set(&DataKey::PayrollLock, &lock);
         
-        env.events().publish((symbol_short!("released"),), sdp_address);
+        env.events().publish((symbol_short!("released"),), findex_address);
         Ok(yield_earned)
     }
     
@@ -157,7 +157,7 @@ impl PayrollYieldContract {
             return Err(Error::Unauthorized);
         }
         
-        // Verify funds have been released to SDP
+        // Verify funds have been released to Findex
         if !lock.funds_released {
             return Err(Error::AlreadyReleased);
         }
@@ -201,8 +201,3 @@ impl PayrollYieldContract {
         
         // Calculate yield based on time elapsed (4% APY)
         let days_locked = (env.ledger().timestamp() - lock.lock_date) / 86400;
-        let current_yield = (lock.total_amount * 4 * days_locked as i128) / (365 * 100);
-        
-        Ok(current_yield)
-    }
-}
