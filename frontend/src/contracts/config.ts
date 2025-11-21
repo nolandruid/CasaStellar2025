@@ -1,6 +1,10 @@
 //This file sets up all the important addresses and URLs the frontend needs to talk to
 
 export const CONTRACTS = {
+  // Main deployed contract
+  PAYDAY_YIELD: "CACGMAKOYX4RZZJULTTAWRA7OLIHEBSI4REONH54GKXFCD7LOUMRIM25",
+  
+  // Future contracts (not yet deployed)
   YIELD_LOCK: import.meta.env.VITE_YIELD_LOCK_CONTRACT_ID || '',
   DISBURSEMENT: import.meta.env.VITE_DISBURSEMENT_CONTRACT_ID || '',
   ZK_VERIFIER: import.meta.env.VITE_ZK_VERIFIER_CONTRACT_ID || '',
