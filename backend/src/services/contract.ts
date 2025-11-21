@@ -23,7 +23,7 @@ const {
 const sorobanServer = new Soroban(STELLAR_CONFIG.SOROBAN_RPC_URL);
 
 // Initialize Horizon Server for account operations
-const horizonServer = new Horizon.Server('https://horizon-testnet.stellar.org');
+const horizonServer = new Horizon.Server(STELLAR_CONFIG.HORIZON_URL);
 
 // Initialize contract
 const contract = new Contract(PAYDAY_YIELD_CONTRACT_ID);
@@ -65,7 +65,7 @@ async function buildAndSubmitTransaction(
   // Build transaction
   const transaction = new TransactionBuilder(account, {
     fee: BASE_FEE,
-    networkPassphrase: Networks.TESTNET,
+    networkPassphrase: STELLAR_CONFIG.NETWORK_PASSPHRASE,
   })
     .addOperation(operation)
     .setTimeout(30)
@@ -231,7 +231,7 @@ export async function getPayrollStatus(): Promise<PayrollLock> {
 
     const transaction = new TransactionBuilder(account, {
       fee: BASE_FEE,
-      networkPassphrase: Networks.TESTNET,
+      networkPassphrase: STELLAR_CONFIG.NETWORK_PASSPHRASE,
     })
       .addOperation(operation)
       .setTimeout(30)
@@ -338,7 +338,7 @@ export async function calculateCurrentYield(): Promise<string> {
 
     const transaction = new TransactionBuilder(account, {
       fee: BASE_FEE,
-      networkPassphrase: Networks.TESTNET,
+      networkPassphrase: STELLAR_CONFIG.NETWORK_PASSPHRASE,
     })
       .addOperation(operation)
       .setTimeout(30)

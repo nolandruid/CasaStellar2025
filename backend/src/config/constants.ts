@@ -4,6 +4,7 @@
 
 interface StellarConfig {
   SOROBAN_RPC_URL: string;
+  HORIZON_URL: string;
   NETWORK_PASSPHRASE: string;
   NETWORK: string;
 }
@@ -21,6 +22,9 @@ interface ApiEndpoints {
 const STELLAR_CONFIG: StellarConfig = {
   // Soroban RPC URL - defaults to testnet
   SOROBAN_RPC_URL: process.env.SOROBAN_RPC_URL || "https://soroban-testnet.stellar.org",
+
+  // Horizon API URL - defaults to testnet
+  HORIZON_URL: process.env.HORIZON_URL || "https://horizon-testnet.stellar.org",
 
   // Stellar network configuration - defaults to testnet
   NETWORK_PASSPHRASE: process.env.NETWORK_PASSPHRASE || "Test SDF Network ; September 2015",
