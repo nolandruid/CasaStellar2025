@@ -20,13 +20,13 @@ interface ApiEndpoints {
 
 const STELLAR_CONFIG: StellarConfig = {
   // Soroban Testnet RPC URL
-  SOROBAN_RPC_URL: "https://soroban-testnet.stellar.org",
+  SOROBAN_RPC_URL: process.env.SOROBAN_RPC_URL || "https://soroban-testnet.stellar.org",
 
   // Stellar testnet configuration
-  NETWORK_PASSPHRASE: "Test SDF Network ; September 2015",
+  NETWORK_PASSPHRASE: process.env.NETWORK_PASSPHRASE || "Test SDF Network ; September 2015",
 
   // Testnet details
-  NETWORK: "testnet",
+  NETWORK: process.env.STELLAR_NETWORK || "testnet",
 };
 
 const SERVER_CONFIG: ServerConfig = {
