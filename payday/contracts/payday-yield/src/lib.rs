@@ -29,7 +29,7 @@ mod defindex_client {
             amounts_min: Vec<i128>,
             from: Address,
             invest: bool,
-        ) -> (Vec<i128>, i128);
+        ) -> (Vec<i128>, i128, Vec<()>);
         
         /// Withdraw assets from the vault by burning shares
         /// Returns: Vector of withdrawn amounts per asset
@@ -164,22 +164,31 @@ impl PayrollYieldContract {
             .get(&DataKey::DefindexPoolAddress)
             .ok_or(Error::NotInitialized)?;
         
-        // Approve DeFindex vault to spend our tokens
-        token_client.approve(
-            &env.current_contract_address(),
-            &defindex_vault,
-            &total_amount,
-            &(env.ledger().sequence() + 1000),
-        );
-        
         let defindex_client = DefindexVaultClient::new(&env, &defindex_vault);
         let mut amounts_vec = Vec::new(&env);
         amounts_vec.push_back(total_amount);
         let mut min_amounts = Vec::new(&env);
         min_amounts.push_back(total_amount);
         
-        // Try direct call - DeFindex should use the approval we set
-        let (_, vault_shares) = defindex_client.deposit(
+        // Authorize the token transfer that DeFindex will make
+        env.authorize_as_current_contract(vec![
+            &env,
+            InvokerContractAuthEntry::Contract(SubContractInvocation {
+                context: ContractContext {
+                    contract: token.clone(),
+                    fn_name: Symbol::new(&env, "transfer"),
+                    args: (
+                        env.current_contract_address(),
+                        defindex_vault.clone(),
+                        total_amount,
+                    ).into_val(&env),
+                },
+                sub_invocations: vec![&env],
+            }),
+        ]);
+        
+        // Now call deposit - the authorization above allows DeFindex to transfer our tokens
+        let (_, vault_shares, _) = defindex_client.deposit(
             &amounts_vec,
             &min_amounts,
             &env.current_contract_address(),
