@@ -102,7 +102,7 @@ export default function Employees() {
   }
 
   const handleExportCSV = () => {
-    const headers = ['First Name,Last Name,Wallet Address,Monthly Salary (XLM),Department']
+    const headers = ['First Name,Last Name,Wallet Address,Monthly Salary (cents),Department']
     const rows = employees.map(emp => 
       `${emp.firstName},${emp.lastName},${emp.walletAddress},${emp.salary},${emp.department || ''}`
     )
@@ -115,70 +115,6 @@ export default function Employees() {
     a.download = 'employees.csv'
     a.click()
     window.URL.revokeObjectURL(url)
-  }
-
-  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = async (e) => {
-      try {
-        const text = e.target?.result as string
-        const lines = text.split('\n').filter(line => line.trim())
-        
-        // Skip header line
-        const dataLines = lines.slice(1)
-        
-        let successCount = 0
-        let errorCount = 0
-
-        for (const line of dataLines) {
-          const [firstName, lastName, walletAddress, salaryStr, department] = line.split(',').map(s => s.trim())
-          
-          if (!firstName || !lastName || !walletAddress || !salaryStr) {
-            errorCount++
-            continue
-          }
-
-          try {
-            const salary = parseFloat(salaryStr)
-            if (isNaN(salary)) {
-              errorCount++
-              continue
-            }
-
-            await employeesAPI.create({
-              firstName,
-              lastName,
-              walletAddress,
-              salary,
-              department: department || ''
-            })
-            successCount++
-          } catch (err) {
-            console.error('Error creating employee:', err)
-            errorCount++
-          }
-        }
-
-        // Refresh the employee list
-        await loadEmployees()
-        
-        if (errorCount > 0) {
-          setError(`Imported ${successCount} employees successfully. ${errorCount} failed.`)
-        } else {
-          setError('')
-        }
-      } catch (err) {
-        setError('Failed to parse CSV file')
-        console.error('CSV parsing error:', err)
-      }
-    }
-    
-    reader.readAsText(file)
-    // Reset the input so the same file can be selected again
-    event.target.value = ''
   }
 
   if (isLoading) {
@@ -213,28 +149,12 @@ export default function Employees() {
           </button>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <label htmlFor="csv-import" className="btn-secondary" style={{ cursor: 'pointer', margin: 0 }}>
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
-            </svg>
-            Import CSV
-            <input
-              id="csv-import"
-              type="file"
-              accept=".csv"
-              onChange={handleImportCSV}
-              style={{ display: 'none' }}
-            />
-          </label>
-          
-          <button className="btn-secondary" onClick={handleExportCSV}>
-            <svg viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
-            </svg>
-            Export CSV
-          </button>
-        </div>
+        <button className="btn-secondary" onClick={handleExportCSV}>
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2z"/>
+          </svg>
+          Export CSV
+        </button>
       </div>
 
       {/* Error Message */}
@@ -260,7 +180,7 @@ export default function Employees() {
         <div className="stat-box">
           <p className="stat-label">Monthly Payroll</p>
           <p className="stat-number">
-            {employees.reduce((sum, emp) => sum + Number(emp.salary), 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XLM
+            ${(employees.reduce((sum, emp) => sum + emp.salary, 0) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         </div>
       </div>
@@ -288,7 +208,7 @@ export default function Employees() {
               </div>
               <div className="employee-salary">
                 <p className="salary-label">Monthly Salary</p>
-                <p className="salary-amount">{Number(employee.salary).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XLM</p>
+                <p className="salary-amount">${(employee.salary / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button 
@@ -370,17 +290,17 @@ export default function Employees() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Monthly Salary (XLM)</label>
+                <label className="form-label">Monthly Salary ($)</label>
                 <input
                   type="number"
                   className="form-input"
                   placeholder="3500"
                   step="0.01"
-                  value={newEmployee.salary || ''}
-                  onChange={(e) => setNewEmployee({ ...newEmployee, salary: parseFloat(e.target.value || '0') })}
+                  value={newEmployee.salary ? newEmployee.salary / 100 : ''}
+                  onChange={(e) => setNewEmployee({ ...newEmployee, salary: Math.round(parseFloat(e.target.value || '0') * 100) })}
                 />
                 <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '4px' }}>
-                  Amount in XLM (Stellar Lumens)
+                  Amount will be stored in cents
                 </p>
               </div>
 
@@ -465,17 +385,17 @@ export default function Employees() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Monthly Salary (XLM)</label>
+                <label className="form-label">Monthly Salary ($)</label>
                 <input
                   type="number"
                   className="form-input"
                   placeholder="3500"
                   step="0.01"
-                  value={editingEmployee.salary}
-                  onChange={(e) => setEditingEmployee({ ...editingEmployee, salary: parseFloat(e.target.value || '0') })}
+                  value={editingEmployee.salary / 100}
+                  onChange={(e) => setEditingEmployee({ ...editingEmployee, salary: Math.round(parseFloat(e.target.value || '0') * 100) })}
                 />
                 <p style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '4px' }}>
-                  Amount in XLM (Stellar Lumens)
+                  Amount will be stored in cents
                 </p>
               </div>
 
