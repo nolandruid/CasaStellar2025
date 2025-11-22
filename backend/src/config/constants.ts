@@ -44,11 +44,27 @@ const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY || "";
 const TOKEN_ADDRESS = process.env.TOKEN_ADDRESS || "";
 const FINDEX_POOL_ADDRESS = process.env.FINDEX_POOL_ADDRESS || "";
 
+// SDP (Stellar Disbursement Platform) Configuration
+interface SDPConfig {
+  API_URL: string;
+  API_KEY: string;
+  WALLET_ADDRESS: string;
+  WALLET_SECRET: string;
+}
+
+const SDP_CONFIG: SDPConfig = {
+  API_URL: process.env.SDP_API_URL || "https://sdp-api.stellar.org",
+  API_KEY: process.env.SDP_API_KEY || "",
+  WALLET_ADDRESS: process.env.SDP_WALLET_ADDRESS || "",
+  WALLET_SECRET: process.env.SDP_WALLET_SECRET || "",
+};
+
 export { 
   SERVER_CONFIG, 
   STELLAR_CONFIG, 
   PAYDAY_YIELD_CONTRACT_ID,
   ADMIN_SECRET_KEY,
   TOKEN_ADDRESS,
-  FINDEX_POOL_ADDRESS
+  FINDEX_POOL_ADDRESS,
+  SDP_CONFIG
 }; 

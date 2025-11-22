@@ -7,22 +7,32 @@ This directory contains all Soroban smart contracts for the Payday platform.
 ### payday-yield
 **Location:** `payday-yield/src/lib.rs`
 
-Yield-generating mechanism for locked payroll funds.
+Yield-generating mechanism for locked payroll funds with DeFindex vault integration.
 
 **Key Features:**
 - Locks employer funds until payout date
-- Integrates with Blend Pool for yield generation (4% APY simulated)
-- Tracks yield earned during lock period
-- Releases principal to SDP for distribution
-- Allows employer to claim 100% of yield
+- **Integrates with DeFindex vault for real yield generation**
+- Supports multiple employers and multiple payroll batches per employer
+- Tracks vault shares and yield earned during lock period
+- Releases principal to distribution contract on payout date
+- Allows employer to claim 100% of yield earned
+- Storage TTL management for data persistence
+- Integer overflow protection on all calculations
 
 **Functions:**
-- `initialize(blend_pool: Address)` - Set up Blend Pool integration
-- `lock_payroll(employer, token, amount, payout_date)` - Lock funds for payroll
-- `release_to_sdp(sdp_address, token)` - Release principal on payout date
-- `claim_yield(employer, token)` - Employer claims their yield share
-- `get_status()` - Get current lock status
-- `calculate_current_yield()` - Check yield progress anytime
+- `initialize(defindex_vault: Address, token: Address)` - Set up DeFindex vault and token
+- `lock_payroll(employer, amount, payout_date) -> batch_id` - Lock funds and deposit to DeFindex
+- `release_to_sdp(employer, batch_id, sdp_wallet_address) -> yield_earned` - Withdraw from vault and send principal to SDP
+- `claim_yield(employer, batch_id) -> yield_amount` - Employer claims their yield share
+- `get_status(employer, batch_id) -> PayrollLock` - Get specific batch lock status
+- `calculate_current_yield(employer, batch_id) -> i128` - Check yield progress for a batch
+
+**Integration with SDP:**
+This contract works with Stellar Disbursement Platform (SDP) for employee distribution:
+1. Employer locks payroll funds (generates yield in DeFindex)
+2. On payout date, principal is released to SDP wallet
+3. SDP handles mass distribution to employees from CSV
+4. Employer claims yield earned during lock period
 
 ## Building Contracts
 
