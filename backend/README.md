@@ -6,21 +6,22 @@ A simple backend for managing employee payroll with Stellar blockchain integrati
 
 - Node.js v22+
 - npm v10+
+- yarn
 
 ## Installation
 
 ```bash
 # Install dependencies
-npm install
+yarn install
 
 # Generate Prisma client
-npm run prisma:generate
+yarn prisma:generate
 
 # Copy environment configuration
 cp .env.example .env
 
 # Start server in development mode
-npm run dev
+yarn dev
 ```
 
 The server will be available at `http://localhost:3003`
@@ -28,10 +29,10 @@ The server will be available at `http://localhost:3003`
 ## Available Scripts
 
 ```bash
-npm run dev             # Start server with auto-reload
-npm start               # Run compiled version
-npm run build           # Compile TypeScript
-npm run prisma:generate # Generate Prisma client (required after schema changes)
+yarn dev             # Start server with auto-reload
+yarn start               # Run compiled version
+yarn build           # Compile TypeScript
+yarn prisma:generate # Generate Prisma client (required after schema changes)
 ```
 
 ## Environment Variables
