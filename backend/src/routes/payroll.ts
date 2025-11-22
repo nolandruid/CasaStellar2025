@@ -385,7 +385,23 @@ router.get("/getStatus", async (req: Request, res: Response): Promise<void> => {
       yield_earned: status.yield_earned.toString(),
       funds_released: status.funds_released,
       yield_claimed: status.yield_claimed,
+      tx_hash_lock: undefined as string | undefined,
+      tx_hash_release: undefined as string | undefined,
     };
+
+    // Fetch transaction hashes from Supabase if available
+    if (supabaseService.isConfigured()) {
+      try {
+        const payroll = await supabaseService.getPayrollByBatchId(employerAddress as string, batchId as string);
+        if (payroll) {
+          serializedStatus.tx_hash_lock = payroll.tx_hash_lock || undefined;
+          serializedStatus.tx_hash_release = payroll.tx_hash_release || undefined;
+        }
+      } catch (dbError) {
+        console.warn('⚠️  Could not fetch transaction hashes from database:', dbError);
+        // Continue without transaction hashes
+      }
+    }
 
     res.status(200).json({
       success: true,
