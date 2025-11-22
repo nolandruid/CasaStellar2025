@@ -10,8 +10,8 @@ import "dotenv/config";
 import express, { Express, NextFunction, Request, Response } from "express";
 
 import { SERVER_CONFIG } from "./config/constants";
-import authRoutes from "./routes/auth";
-import employeeRoutes from "./routes/employee";
+// import authRoutes from "./routes/auth"; // Disabled - uses Prisma
+// import employeeRoutes from "./routes/employee"; // Disabled - uses Prisma
 import payrollRoutes from "./routes/payroll";
 import {
   checkSorobanHealth,
@@ -70,9 +70,9 @@ async function initializeApp(): Promise<void> {
 }
 
 // Routes
-app.use("/auth", authRoutes);
+// app.use("/auth", authRoutes); // Disabled - uses Prisma
 app.use("/", payrollRoutes);
-app.use("/", employeeRoutes);
+// app.use("/", employeeRoutes); // Disabled - uses Prisma
 
 /**
  * 404 Handler
