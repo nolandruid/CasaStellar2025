@@ -245,3 +245,125 @@ export const employeesAPI = {
     return response.json();
   },
 };
+
+// Payroll API
+export interface EmployeePayrollData {
+  id: string;
+  name: string;
+  walletAddress: string;
+  amount: string;
+}
+
+export interface UploadPayrollData {
+  employerAddress: string;
+  employees: EmployeePayrollData[];
+  payoutDate: number | string; // Unix timestamp or ISO date string
+}
+
+export interface PayrollStatus {
+  employer: string;
+  total_amount: string;
+  vault_shares: string;
+  lock_date: number;
+  payout_date: number;
+  yield_earned: string;
+  funds_released: boolean;
+  yield_claimed: boolean;
+}
+
+export interface UploadPayrollResponse {
+  success: boolean;
+  message: string;
+  payrollId: string;
+  batchId?: string;
+  employeeCount: number;
+  status: string;
+  timestamp: string;
+  txHash?: string;
+  totalAmount?: string;
+}
+
+export interface YieldData {
+  currentYield: string;
+  elapsedTime: number;
+  lockDate: number;
+  payoutDate: number;
+}
+
+export const payrollAPI = {
+  /**
+   * Upload payroll batch
+   */
+  async uploadPayroll(data: UploadPayrollData): Promise<UploadPayrollResponse> {
+    const response = await fetch(`${API_BASE_URL}/uploadPayroll`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to upload payroll');
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Get payroll status
+   */
+  async getStatus(employerAddress: string, batchId: string): Promise<ApiResponse<PayrollStatus>> {
+    const response = await fetch(
+      `${API_BASE_URL}/getStatus?employerAddress=${encodeURIComponent(employerAddress)}&batchId=${encodeURIComponent(batchId)}`,
+      {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to get payroll status');
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Calculate current yield (real-time)
+   */
+  async calculateCurrentYield(employerAddress: string, batchId: string): Promise<ApiResponse<YieldData>> {
+    const response = await fetch(
+      `${API_BASE_URL}/calculateYield?employerAddress=${encodeURIComponent(employerAddress)}&batchId=${encodeURIComponent(batchId)}`,
+      {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to calculate yield');
+    }
+
+    return response.json();
+  },
+
+  /**
+   * Release payroll to SDP
+   */
+  async releasePayroll(employerAddress: string, batchId: string): Promise<ApiResponse<any>> {
+    const response = await fetch(`${API_BASE_URL}/releasePayroll`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ employerAddress, batchId }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to release payroll');
+    }
+
+    return response.json();
+  },
+};

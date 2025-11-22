@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useWallet } from '../context/WalletContext'
+import { payrollAPI, EmployeePayrollData } from '../services/api'
 import './PayrollUpload.css'
 
 interface PayrollData {
@@ -9,51 +10,146 @@ interface PayrollData {
 }
 
 export default function PayrollUpload() {
-  const { isConnected } = useWallet()
+  const { isConnected, publicKey } = useWallet()
+  
+  // Calculate default date (30 days from now)
+  const getDefaultDate = () => {
+    const date = new Date()
+    date.setDate(date.getDate() + 30)
+    return date.toISOString().split('T')[0]
+  }
+  
   const [formData, setFormData] = useState<PayrollData>({
     employees: '',
     amount: '',
-    paymentDate: ''
+    paymentDate: getDefaultDate()
   })
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [uploadResult, setUploadResult] = useState<{
+    batchId?: string
+    txHash?: string
+  } | null>(null)
+
+  // Debug logging
+  console.log('🔍 Wallet Debug:', { 
+    isConnected, 
+    publicKey, 
+    hasPublicKey: !!publicKey,
+    buttonDisabled: loading || !publicKey 
+  })
+
+  const parseEmployees = (employeesText: string): EmployeePayrollData[] => {
+    const lines = employeesText.trim().split('\n')
+    const employees: EmployeePayrollData[] = []
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]
+      const parts = line.trim().split(',').map(p => p.trim())
+      if (parts.length >= 2) {
+        const walletAddress = parts[0]
+        const amount = parts[1]
+        const name = parts[2] || `Employee ${i + 1}`
+        
+        employees.push({
+          id: `emp-${Date.now()}-${i}`,
+          name,
+          walletAddress,
+          amount,
+        })
+      }
+    }
+    
+    return employees
+  }
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const text = event.target?.result as string
+      
+      // Parse CSV and calculate total
+      const employees = parseEmployees(text)
+      const total = employees.reduce((sum, emp) => {
+        const amount = parseFloat(emp.amount)
+        return sum + (isNaN(amount) ? 0 : amount)
+      }, 0)
+      
+      // Update form data
+      setFormData({
+        ...formData,
+        employees: text,
+        amount: total.toFixed(2),
+      })
+      
+      console.log(`✅ Loaded ${employees.length} employees from CSV. Total: ${total}`)
+    }
+    
+    reader.readAsText(file)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!isConnected) {
+    if (!isConnected || !publicKey) {
       alert('Please connect your wallet first')
       return
     }
 
     setLoading(true)
     
-    // Mock API call
     try {
-      // Simulate API POST request
-      await mockApiCall('/api/payroll/upload', formData)
+      // Parse employee data
+      const employees = parseEmployees(formData.employees)
       
+      if (employees.length === 0) {
+        alert('Please add at least one employee')
+        setLoading(false)
+        return
+      }
+
+      // Convert payment date to Unix timestamp
+      const payoutDate = Math.floor(new Date(formData.paymentDate).getTime() / 1000)
+      
+      const payload = {
+        employerAddress: publicKey,
+        employees,
+        payoutDate,
+      }
+      
+      console.log('📤 Sending payload:', JSON.stringify(payload, null, 2))
+      
+      // Call real API
+      const response = await payrollAPI.uploadPayroll(payload)
+      
+      console.log('✅ Payroll uploaded:', response)
+      
+      setUploadResult({
+        batchId: response.batchId,
+        txHash: response.txHash,
+      })
       setSuccess(true)
+      
+      // Store batch ID in localStorage for status page
+      if (response.batchId) {
+        localStorage.setItem('lastBatchId', response.batchId)
+        localStorage.setItem('lastEmployerAddress', publicKey)
+      }
+      
       setTimeout(() => {
         setSuccess(false)
         setFormData({ employees: '', amount: '', paymentDate: '' })
-      }, 3000)
+        setUploadResult(null)
+      }, 5000)
     } catch (error) {
       console.error('Error uploading payroll:', error)
-      alert('Error uploading payroll data')
+      alert(`Error uploading payroll: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
-  }
-
-  // Mock API function
-  const mockApiCall = (endpoint: string, data: any): Promise<any> => {
-    return new Promise((resolve) => {
-      console.log(`Mock POST to ${endpoint}:`, data)
-      setTimeout(() => {
-        resolve({ success: true, data })
-      }, 1500)
-    })
   }
 
   return (
@@ -63,21 +159,39 @@ export default function PayrollUpload() {
 
       <form onSubmit={handleSubmit} className="upload-form">
         <div className="form-group">
-          <label htmlFor="employees">Employee List (CSV format or addresses)</label>
+          <label htmlFor="employees">Employee List</label>
+          
+          {/* CSV File Upload Button */}
+          <div style={{ marginBottom: '1rem' }}>
+            <input
+              type="file"
+              id="csvFile"
+              accept=".csv,.txt"
+              onChange={handleFileUpload}
+              style={{ display: 'none' }}
+            />
+            <label htmlFor="csvFile" className="btn-upload-csv">
+              📁 Upload CSV File
+            </label>
+            <span style={{ marginLeft: '1rem', color: '#6b7280', fontSize: '0.875rem' }}>
+              or paste data below
+            </span>
+          </div>
+
           <textarea
             id="employees"
-            placeholder="GXXXXXXX, 1000&#10;GYYYYYYY, 1500&#10;GZZZZZZZ, 2000"
+            placeholder="GXXXXXXX, 1000, Alice&#10;GYYYYYYY, 1500, Bob&#10;GZZZZZZZ, 2000, Charlie"
             value={formData.employees}
             onChange={(e) => setFormData({ ...formData, employees: e.target.value })}
             rows={6}
             required
           />
-          <span className="helper-text">Format: Stellar Address, Amount (one per line)</span>
+          <span className="helper-text">Format: Stellar Address, Amount, Name (one per line)</span>
         </div>
 
         <div className="form-row">
           <div className="form-group">
-            <label htmlFor="amount">Total Amount (USDC)</label>
+            <label htmlFor="amount">Total Amount (XLM)</label>
             <input
               type="number"
               id="amount"
@@ -87,6 +201,7 @@ export default function PayrollUpload() {
               min="0"
               step="0.01"
               required
+              readOnly
             />
           </div>
 
@@ -105,13 +220,34 @@ export default function PayrollUpload() {
         <button 
           type="submit" 
           className="btn-submit"
-          disabled={loading || !isConnected}
+          disabled={loading || !publicKey}
         >
           {loading ? 'Processing...' : success ? '✓ Uploaded!' : 'Submit Payroll'}
         </button>
 
-        {!isConnected && (
+        {!publicKey && (
           <p className="warning">⚠️ Please connect your wallet to submit payroll</p>
+        )}
+
+        {uploadResult && (
+          <div className="upload-result">
+            <p className="success">✅ Payroll uploaded successfully!</p>
+            {uploadResult.batchId && (
+              <p><strong>Batch ID:</strong> {uploadResult.batchId}</p>
+            )}
+            {uploadResult.txHash && (
+              <p>
+                <strong>Transaction:</strong>{' '}
+                <a 
+                  href={`https://stellar.expert/explorer/testnet/tx/${uploadResult.txHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  View on Stellar Expert ↗
+                </a>
+              </p>
+            )}
+          </div>
         )}
       </form>
     </div>

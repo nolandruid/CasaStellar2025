@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import WalletConnect from '../components/WalletConnect'
+import PayrollUpload from '../components/PayrollUpload'
 import { useAuth } from '../context/AuthContext'
 import { employeesAPI, type Employee } from '../services/api'
 import { 
@@ -86,8 +87,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Card: Upcoming Payroll */}
+      {/* Payroll Upload Section */}
       <div className="dashboard-content">
+        <PayrollUpload />
+
+        {/* Card: Upcoming Payroll */}
         <div className="payroll-card">
           <div className="card-inner">
             <div className="card-header-row">
