@@ -375,9 +375,21 @@ router.get("/getStatus", async (req: Request, res: Response): Promise<void> => {
     // Query contract for current status
     const status = await getPayrollStatus(employerAddress as string, batchId as string);
 
+    // Convert BigInt values to strings for JSON serialization
+    const serializedStatus = {
+      employer: status.employer,
+      total_amount: status.total_amount.toString(),
+      vault_shares: status.vault_shares.toString(),
+      lock_date: Number(status.lock_date),
+      payout_date: Number(status.payout_date),
+      yield_earned: status.yield_earned.toString(),
+      funds_released: status.funds_released,
+      yield_claimed: status.yield_claimed,
+    };
+
     res.status(200).json({
       success: true,
-      data: status,
+      data: serializedStatus,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
@@ -417,15 +429,15 @@ router.get("/calculateYield", async (req: Request, res: Response): Promise<void>
     // Note: The contract's calculate_current_yield might need employer and batch_id parameters
     // For now, we'll use the status to calculate elapsed time
     const currentTime = Math.floor(Date.now() / 1000);
-    const elapsedTime = currentTime - status.lock_date;
+    const elapsedTime = currentTime - Number(status.lock_date);
     
     res.status(200).json({
       success: true,
       data: {
-        currentYield: status.yield_earned,
+        currentYield: status.yield_earned.toString(),
         elapsedTime,
-        lockDate: status.lock_date,
-        payoutDate: status.payout_date,
+        lockDate: Number(status.lock_date),
+        payoutDate: Number(status.payout_date),
       },
       timestamp: new Date().toISOString(),
     });
