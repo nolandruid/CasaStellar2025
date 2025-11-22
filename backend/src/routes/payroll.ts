@@ -8,12 +8,15 @@ import { Request, Response, Router } from "express";
 import { ZodError } from "zod";
 import { ClaimPaySchema, UploadPayrollSchema } from "../schemas/payroll";
 import { generateClaimId, generatePayrollId } from "../services/stellar";
-import { lockPayroll, releaseToFindex, getPayrollStatus, amountToStroops } from "../services/contract";
+import { lockPayroll, releaseToSDP, getPayrollStatus, amountToStroops } from "../services/contract";
+import supabaseService from "../services/supabase";
+import { checkAndReleasePayrolls } from "../workflows/payroll-sdp-workflow";
 
 interface UploadPayrollResponse {
   success: boolean;
   message: string;
   payrollId: string;
+  batchId?: string;
   employeeCount: number;
   status: string;
   timestamp: string;
@@ -94,29 +97,74 @@ router.post(
 
       // Lock payroll in smart contract
       let txHash: string | undefined;
+      let batchId: string | undefined;
+      let supabasePayrollId: string | undefined;
+
       try {
         // Convert payout date to Unix timestamp if it's a string
         const payoutTimestamp = typeof payoutDate === 'string' 
           ? Math.floor(new Date(payoutDate).getTime() / 1000)
           : payoutDate;
+        const payoutDateObj = typeof payoutDate === 'string'
+          ? new Date(payoutDate)
+          : new Date(payoutDate * 1000);
 
-        txHash = await lockPayroll(
+        // Step 1: Lock payroll in smart contract
+        const lockResult = await lockPayroll(
           employerAddress,
           totalStroops,
           payoutTimestamp
         );
+        txHash = lockResult.txHash;
+        batchId = lockResult.batchId;
+
+        // Step 2: Store in Supabase (if configured)
+        if (supabaseService.isConfigured()) {
+          try {
+            supabasePayrollId = await supabaseService.createPayroll({
+              employer_address: employerAddress,
+              batch_id: batchId,
+              total_amount: totalAmount.toString(),
+              vault_shares: '0', // Will be updated when we integrate DeFindex
+              lock_date: new Date(),
+              payout_date: payoutDateObj,
+              status: 'locked',
+              tx_hash_lock: txHash,
+            });
+
+            // Step 3: Store employee records
+            const employeeRecords = employees.map(emp => ({
+              payroll_id: supabasePayrollId!,
+              stellar_address: emp.walletAddress,
+              amount: emp.amount,
+              status: 'pending' as const,
+            }));
+            await supabaseService.insertEmployees(employeeRecords);
+
+            console.log(`✅ Payroll stored in database: ${supabasePayrollId}`);
+          } catch (dbError) {
+            console.error('⚠️  Failed to store in database:', dbError);
+            // Continue even if database fails
+          }
+        }
       } catch (contractError) {
         const errorMsg = contractError instanceof Error ? contractError.message : 'Contract call failed';
         console.error('Contract error:', errorMsg);
-        // Continue even if contract fails (for demo purposes)
+        res.status(500).json({
+          success: false,
+          error: 'Failed to lock payroll in contract',
+          details: { error: [errorMsg] },
+        } as ErrorResponse);
+        return;
       }
 
       const response: UploadPayrollResponse = {
         success: true,
-        message: txHash ? "Payroll uploaded and locked in contract" : "Payroll uploaded (contract call failed)",
-        payrollId,
+        message: "Payroll uploaded and locked in contract",
+        payrollId: supabasePayrollId || payrollId,
+        batchId,
         employeeCount: employees.length,
-        status: txHash ? "locked" : "uploaded",
+        status: "locked",
         timestamp: new Date().toISOString(),
         txHash,
         totalAmount: totalAmount.toString(),
@@ -152,14 +200,38 @@ router.post(
  */
 router.post("/releasePayroll", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { findexAddress } = req.body;
+    const { employerAddress, batchId } = req.body;
 
-    // Call contract to release funds
-    const result = await releaseToFindex(findexAddress);
+    if (!employerAddress || !batchId) {
+      res.status(400).json({
+        success: false,
+        error: "employerAddress and batchId are required",
+      } as ErrorResponse);
+      return;
+    }
+
+    // Call contract to release funds to SDP
+    const result = await releaseToSDP(employerAddress, batchId);
+
+    // Update Supabase if configured
+    if (supabaseService.isConfigured()) {
+      try {
+        const payroll = await supabaseService.getPayrollByBatchId(employerAddress, batchId);
+        if (payroll) {
+          await supabaseService.updatePayrollStatus(payroll.id!, {
+            status: 'released',
+            yield_earned: result.yieldEarned,
+            tx_hash_release: result.txHash,
+          });
+        }
+      } catch (dbError) {
+        console.error('⚠️  Failed to update database:', dbError);
+      }
+    }
 
     res.status(200).json({
       success: true,
-      message: "Payroll released successfully",
+      message: "Payroll released successfully to SDP",
       txHash: result.txHash,
       yieldEarned: result.yieldEarned,
       timestamp: new Date().toISOString(),
@@ -184,8 +256,18 @@ router.post("/releasePayroll", async (req: Request, res: Response): Promise<void
  */
 router.get("/getStatus", async (req: Request, res: Response): Promise<void> => {
   try {
+    const { employerAddress, batchId } = req.query;
+
+    if (!employerAddress || !batchId) {
+      res.status(400).json({
+        success: false,
+        error: "employerAddress and batchId query parameters are required",
+      } as ErrorResponse);
+      return;
+    }
+
     // Query contract for current status
-    const status = await getPayrollStatus();
+    const status = await getPayrollStatus(employerAddress as string, batchId as string);
 
     res.status(200).json({
       success: true,
@@ -255,6 +337,33 @@ router.post("/claimPay", async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({
       success: false,
       error: "Internal server error",
+      details: { error: [errorMessage] },
+    } as ErrorResponse);
+  }
+});
+
+/**
+ * POST /checkAndRelease
+ * Manually trigger automated check for payrolls ready to release
+ * (For testing - in production this should be a cron job)
+ *
+ * @param {Request} req - Express request
+ * @param {Response} res - Express response
+ */
+router.post("/checkAndRelease", async (req: Request, res: Response): Promise<void> => {
+  try {
+    await checkAndReleasePayrolls();
+    res.status(200).json({
+      success: true,
+      message: "Automated check complete",
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error in /checkAndRelease:", errorMessage);
+    res.status(500).json({
+      success: false,
+      error: "Failed to check and release payrolls",
       details: { error: [errorMessage] },
     } as ErrorResponse);
   }

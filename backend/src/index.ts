@@ -17,6 +17,7 @@ import {
   checkSorobanHealth,
   initializeSorobanServer,
 } from "./services/stellar";
+import supabaseService from "./services/supabase";
 
 // Initialize Express app
 const app: Express = express();
@@ -46,6 +47,9 @@ let sorobanServer: rpc.Server | null = null;
 async function initializeApp(): Promise<void> {
   try {
     console.log("🚀 Initializing Payroll Backend Server...\n");
+
+    // Initialize Supabase
+    supabaseService.initialize();
 
     // Connect to Soroban
     sorobanServer = initializeSorobanServer();

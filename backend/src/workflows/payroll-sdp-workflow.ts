@@ -5,6 +5,7 @@
 
 import { lockPayroll, releaseToSDP, claimYield, getPayrollStatus } from '../services/contract';
 import sdpService, { EmployeePayment } from '../services/sdp';
+import supabaseService from '../services/supabase';
 
 interface PayrollWorkflowParams {
   employerAddress: string;
@@ -93,7 +94,7 @@ export async function releasePayrollOnPayoutDate(
   try {
     // Step 1: Check status
     console.log('\n📊 Step 1: Checking payroll status...');
-    const status = await getPayrollStatus();
+    const status = await getPayrollStatus(employerAddress, batchId);
     console.log(`   Funds released: ${status.funds_released}`);
     console.log(`   Yield earned: ${status.yield_earned}`);
 
@@ -109,11 +110,55 @@ export async function releasePayrollOnPayoutDate(
     console.log(`   Yield earned: ${yieldEarned}`);
     console.log(`   Principal sent to SDP wallet!`);
 
+    // Step 2.5: Update Supabase
+    if (supabaseService.isConfigured()) {
+      const payroll = await supabaseService.getPayrollByBatchId(employerAddress, batchId);
+      if (payroll) {
+        await supabaseService.updatePayrollStatus(payroll.id!, {
+          status: 'released',
+          yield_earned: yieldEarned,
+          tx_hash_release: txHash,
+        });
+      }
+    }
+
     // Step 3: Start SDP disbursement
     console.log('\n📤 Step 3: Starting SDP disbursement...');
-    await sdpService.startDisbursement(disbursementId);
-    console.log(`   Disbursement started!`);
-    console.log(`   Employees will receive payments shortly.`);
+    let sdpUploadId: string | undefined;
+    try {
+      await sdpService.startDisbursement(disbursementId);
+      console.log(`   Disbursement started!`);
+      console.log(`   Employees will receive payments shortly.`);
+
+      // Record SDP upload success
+      if (supabaseService.isConfigured()) {
+        const payroll = await supabaseService.getPayrollByBatchId(employerAddress, batchId);
+        if (payroll) {
+          sdpUploadId = await supabaseService.createSDPUpload({
+            payroll_id: payroll.id!,
+            sdp_response: { disbursement_id: disbursementId, status: 'started' },
+            upload_status: 'success',
+          });
+          await supabaseService.updatePayrollStatus(payroll.id!, {
+            status: 'distributed',
+          });
+        }
+      }
+    } catch (sdpError) {
+      console.error('   ❌ SDP disbursement failed:', sdpError);
+      // Record SDP upload failure
+      if (supabaseService.isConfigured()) {
+        const payroll = await supabaseService.getPayrollByBatchId(employerAddress, batchId);
+        if (payroll) {
+          await supabaseService.createSDPUpload({
+            payroll_id: payroll.id!,
+            sdp_response: { error: sdpError instanceof Error ? sdpError.message : 'Unknown error' },
+            upload_status: 'failed',
+          });
+        }
+      }
+      throw sdpError;
+    }
 
     console.log('\n✅ Payroll released successfully!');
     console.log(`   Yield earned: ${yieldEarned}`);
@@ -165,6 +210,62 @@ export async function checkDisbursementStatus(disbursementId: string) {
     return status;
   } catch (error) {
     console.error('\n❌ Status check failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Automated cron job to check and release payrolls
+ * Should be run periodically (e.g., every hour)
+ */
+export async function checkAndReleasePayrolls() {
+  console.log('\n⏰ Checking for payrolls ready to release...');
+  console.log('============================================');
+
+  if (!supabaseService.isConfigured()) {
+    console.log('⚠️  Supabase not configured. Skipping automated checks.');
+    return;
+  }
+
+  try {
+    // Get all payrolls ready for release
+    const payrolls = await supabaseService.getPayrollsReadyForRelease();
+    console.log(`Found ${payrolls.length} payroll(s) ready for release`);
+
+    for (const payroll of payrolls) {
+      console.log(`\n📦 Processing payroll ${payroll.batch_id}...`);
+      console.log(`   Employer: ${payroll.employer_address}`);
+      console.log(`   Amount: ${payroll.total_amount}`);
+      console.log(`   Payout date: ${payroll.payout_date}`);
+
+      try {
+        // Release to SDP
+        const { txHash, yieldEarned } = await releaseToSDP(
+          payroll.employer_address,
+          payroll.batch_id
+        );
+
+        // Update status
+        await supabaseService.updatePayrollStatus(payroll.id!, {
+          status: 'released',
+          yield_earned: yieldEarned,
+          tx_hash_release: txHash,
+        });
+
+        console.log(`   ✅ Released! TX: ${txHash}`);
+        console.log(`   Yield earned: ${yieldEarned}`);
+
+        // TODO: Trigger SDP disbursement if you have disbursement_id stored
+        // For now, this needs to be done manually or via separate endpoint
+      } catch (releaseError) {
+        console.error(`   ❌ Failed to release payroll ${payroll.batch_id}:`, releaseError);
+        // Continue with next payroll
+      }
+    }
+
+    console.log('\n✅ Automated check complete');
+  } catch (error) {
+    console.error('\n❌ Automated check failed:', error);
     throw error;
   }
 }

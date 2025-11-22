@@ -222,14 +222,26 @@ export async function releaseToSDP(
 
 /**
  * Get current payroll lock status from contract
+ * @param employerAddress - Employer's Stellar address
+ * @param batchId - Batch ID from lock_payroll
  * @returns PayrollLock object with current state
  */
-export async function getPayrollStatus(): Promise<PayrollLock> {
+export async function getPayrollStatus(employerAddress: string, batchId: string): Promise<PayrollLock> {
   try {
     console.log('📊 Fetching payroll status...');
+    console.log(`   Employer: ${employerAddress}`);
+    console.log(`   Batch ID: ${batchId}`);
 
-    // Build contract call (read-only)
-    const operation = contract.call('get_status');
+    // Build contract call (read-only) with new signature
+    const employerScVal = employerAddress.startsWith('G')
+      ? nativeToScVal(Keypair.fromPublicKey(employerAddress).publicKey(), { type: 'address' })
+      : new Address(employerAddress).toScVal();
+    
+    const operation = contract.call(
+      'get_status',
+      employerScVal,
+      nativeToScVal(BigInt(batchId), { type: 'u64' })
+    );
 
     if (!adminKeypair) {
       throw new Error('Admin keypair not configured');
