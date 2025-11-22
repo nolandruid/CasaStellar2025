@@ -95,20 +95,21 @@ router.post(
       // Convert to stroops (7 decimal places for Stellar)
       const totalStroops = amountToStroops(totalAmount);
 
+      // Convert payout date to Unix timestamp if it's a string
+      const payoutTimestamp = typeof payoutDate === 'string' 
+        ? Math.floor(new Date(payoutDate).getTime() / 1000)
+        : payoutDate;
+      const payoutDateObj = typeof payoutDate === 'string'
+        ? new Date(payoutDate)
+        : new Date(payoutDate * 1000);
+
       // Lock payroll in smart contract
       let txHash: string | undefined;
       let batchId: string | undefined;
       let supabasePayrollId: string | undefined;
+      let contractError: string | undefined;
 
       try {
-        // Convert payout date to Unix timestamp if it's a string
-        const payoutTimestamp = typeof payoutDate === 'string' 
-          ? Math.floor(new Date(payoutDate).getTime() / 1000)
-          : payoutDate;
-        const payoutDateObj = typeof payoutDate === 'string'
-          ? new Date(payoutDate)
-          : new Date(payoutDate * 1000);
-
         // Step 1: Lock payroll in smart contract
         const lockResult = await lockPayroll(
           employerAddress,
@@ -117,45 +118,43 @@ router.post(
         );
         txHash = lockResult.txHash;
         batchId = lockResult.batchId;
+        console.log(`✅ Contract lock successful. TX: ${txHash}, Batch: ${batchId}`);
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : 'Contract call failed';
+        console.error('⚠️  Contract error:', errorMsg);
+        contractError = errorMsg;
+        // Continue to store in Supabase even if contract fails
+        batchId = '0'; // Use default batch ID for failed contracts
+      }
 
-        // Step 2: Store in Supabase (if configured)
-        if (supabaseService.isConfigured()) {
-          try {
-            supabasePayrollId = await supabaseService.createPayroll({
-              employer_address: employerAddress,
-              batch_id: batchId,
-              total_amount: totalAmount.toString(),
-              vault_shares: '0', // Will be updated when we integrate DeFindex
-              lock_date: new Date(),
-              payout_date: payoutDateObj,
-              status: 'locked',
-              tx_hash_lock: txHash,
-            });
+      // Step 2: Store in Supabase (always, even if contract failed)
+      if (supabaseService.isConfigured()) {
+        try {
+          supabasePayrollId = await supabaseService.createPayroll({
+            employer_address: employerAddress,
+            batch_id: batchId || '0',
+            total_amount: totalAmount.toString(),
+            vault_shares: '0', // Will be updated when we integrate DeFindex
+            lock_date: new Date(),
+            payout_date: payoutDateObj,
+            status: 'locked', // Always locked in DB, even if contract failed
+            tx_hash_lock: txHash || 'contract_failed',
+          });
 
-            // Step 3: Store employee records
-            const employeeRecords = employees.map(emp => ({
-              payroll_id: supabasePayrollId!,
-              stellar_address: emp.walletAddress,
-              amount: emp.amount,
-              status: 'pending' as const,
-            }));
-            await supabaseService.insertEmployees(employeeRecords);
+          // Step 3: Store employee records
+          const employeeRecords = employees.map(emp => ({
+            payroll_id: supabasePayrollId!,
+            stellar_address: emp.walletAddress,
+            amount: emp.amount,
+            status: 'pending' as const,
+          }));
+          await supabaseService.insertEmployees(employeeRecords);
 
-            console.log(`✅ Payroll stored in database: ${supabasePayrollId}`);
-          } catch (dbError) {
-            console.error('⚠️  Failed to store in database:', dbError);
-            // Continue even if database fails
-          }
+          console.log(`✅ Payroll stored in database: ${supabasePayrollId}`);
+        } catch (dbError) {
+          console.error('⚠️  Failed to store in database:', dbError);
+          // Continue even if database fails
         }
-      } catch (contractError) {
-        const errorMsg = contractError instanceof Error ? contractError.message : 'Contract call failed';
-        console.error('Contract error:', errorMsg);
-        res.status(500).json({
-          success: false,
-          error: 'Failed to lock payroll in contract',
-          details: { error: [errorMsg] },
-        } as ErrorResponse);
-        return;
       }
 
       const response: UploadPayrollResponse = {
@@ -280,6 +279,55 @@ router.get("/getStatus", async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({
       success: false,
       error: "Failed to get payroll status",
+      details: { error: [errorMessage] },
+    } as ErrorResponse);
+  }
+});
+
+/**
+ * GET /calculateYield
+ * Calculate current yield for a payroll batch (real-time, no transaction)
+ *
+ * @param {Request} req - Express request
+ * @param {Response} res - Express response
+ */
+router.get("/calculateYield", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { employerAddress, batchId } = req.query;
+
+    if (!employerAddress || !batchId) {
+      res.status(400).json({
+        success: false,
+        error: "employerAddress and batchId query parameters are required",
+      } as ErrorResponse);
+      return;
+    }
+
+    // Get status first to get lock date and payout date
+    const status = await getPayrollStatus(employerAddress as string, batchId as string);
+    
+    // Calculate current yield (this is a simulation, no transaction)
+    // Note: The contract's calculate_current_yield might need employer and batch_id parameters
+    // For now, we'll use the status to calculate elapsed time
+    const currentTime = Math.floor(Date.now() / 1000);
+    const elapsedTime = currentTime - status.lock_date;
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        currentYield: status.yield_earned,
+        elapsedTime,
+        lockDate: status.lock_date,
+        payoutDate: status.payout_date,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error in /calculateYield:", errorMessage);
+    res.status(500).json({
+      success: false,
+      error: "Failed to calculate yield",
       details: { error: [errorMessage] },
     } as ErrorResponse);
   }

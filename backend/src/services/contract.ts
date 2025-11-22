@@ -4,6 +4,7 @@
  */
 
 import * as StellarSdk from '@stellar/stellar-sdk';
+import { rpc } from '@stellar/stellar-sdk';
 import { STELLAR_CONFIG, PAYDAY_YIELD_CONTRACT_ID, ADMIN_SECRET_KEY, TOKEN_ADDRESS, FINDEX_POOL_ADDRESS, SDP_CONFIG } from '../config/constants';
 import sdpService from './sdp';
 
@@ -21,7 +22,7 @@ const {
 } = StellarSdk;
 
 // Initialize Soroban RPC Server
-const sorobanServer = new Soroban(STELLAR_CONFIG.SOROBAN_RPC_URL);
+const sorobanServer = new rpc.Server(STELLAR_CONFIG.SOROBAN_RPC_URL);
 
 // Initialize Horizon Server for account operations
 const horizonServer = new Horizon.Server(STELLAR_CONFIG.HORIZON_URL);
@@ -76,29 +77,29 @@ async function buildAndSubmitTransaction(
   // Simulate transaction first
   const simulated = await sorobanServer.simulateTransaction(transaction);
   
-  if (Soroban.Api.isSimulationError(simulated)) {
+  if (rpc.Api.isSimulationError(simulated)) {
     throw new Error(`Simulation failed: ${simulated.error}`);
   }
 
-  // Prepare transaction
-  const prepared = Soroban.assembleTransaction(transaction, simulated).build();
+  // Assemble the transaction with auth
+  const assembled = rpc.assembleTransaction(transaction, simulated).build();
 
   // Sign transaction
-  prepared.sign(adminKeypair);
+  assembled.sign(adminKeypair);
 
   // Submit transaction
-  const result = await sorobanServer.sendTransaction(prepared);
+  const result = await sorobanServer.sendTransaction(assembled);
 
   if (result.status === 'PENDING') {
     // Poll for result
     let getResponse = await sorobanServer.getTransaction(result.hash);
     
-    while (getResponse.status === Soroban.Api.GetTransactionStatus.NOT_FOUND) {
+    while (getResponse.status === rpc.Api.GetTransactionStatus.NOT_FOUND) {
       await new Promise(resolve => setTimeout(resolve, 1000));
       getResponse = await sorobanServer.getTransaction(result.hash);
     }
 
-    if (getResponse.status === Soroban.Api.GetTransactionStatus.SUCCESS) {
+    if (getResponse.status === rpc.Api.GetTransactionStatus.SUCCESS) {
       return result.hash;
     } else {
       throw new Error(`Transaction failed: ${getResponse.status}`);
