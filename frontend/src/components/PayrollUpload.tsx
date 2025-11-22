@@ -12,11 +12,12 @@ interface PayrollData {
 export default function PayrollUpload() {
   const { isConnected, publicKey } = useWallet()
   
-  // Calculate default date (30 days from now)
+  // Calculate default date (30 days from now) with time
   const getDefaultDate = () => {
     const date = new Date()
     date.setDate(date.getDate() + 30)
-    return date.toISOString().split('T')[0]
+    // Format as YYYY-MM-DDTHH:MM for datetime-local input
+    return date.toISOString().slice(0, 16)
   }
   
   const [formData, setFormData] = useState<PayrollData>({
@@ -206,14 +207,15 @@ export default function PayrollUpload() {
           </div>
 
           <div className="form-group">
-            <label htmlFor="paymentDate">Payment Date</label>
+            <label htmlFor="paymentDate">Payment Date & Time</label>
             <input
-              type="date"
+              type="datetime-local"
               id="paymentDate"
               value={formData.paymentDate}
               onChange={(e) => setFormData({ ...formData, paymentDate: e.target.value })}
               required
             />
+            <span className="helper-text">For demo: Set to current time + 30 seconds</span>
           </div>
         </div>
 
