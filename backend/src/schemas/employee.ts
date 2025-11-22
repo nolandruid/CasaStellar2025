@@ -8,7 +8,7 @@ import { z } from "zod";
 export const CreateEmployeeSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  salary: z.number().int().min(0, "Salary must be a positive integer (in cents)"),
+  salary: z.number().min(0, "Salary must be a positive number (in XLM)"),
   walletAddress: z.string().min(1, "Wallet address is required"),
   department: z.string().optional(),
   employerId: z.string().uuid().optional(),
@@ -17,7 +17,7 @@ export const CreateEmployeeSchema = z.object({
 export const UpdateEmployeeSchema = z.object({
   firstName: z.string().min(1, "First name is required").optional(),
   lastName: z.string().min(1, "Last name is required").optional(),
-  salary: z.number().int().min(0, "Salary must be a positive integer (in cents)").optional(),
+  salary: z.number().min(0, "Salary must be a positive number (in XLM)").optional(),
   walletAddress: z.string().min(1, "Wallet address is required").optional(),
   department: z.string().optional(),
   employerId: z.string().uuid().optional(),
