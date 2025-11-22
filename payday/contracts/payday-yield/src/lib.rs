@@ -9,8 +9,9 @@
 
 #![no_std]
 use soroban_sdk::{
+    auth::{ContractContext, InvokerContractAuthEntry, SubContractInvocation},
     contract, contracterror, contractimpl, contracttype, symbol_short, 
-    token::TokenClient, Address, Env, Vec
+    token::TokenClient, vec, Address, Env, IntoVal, Symbol, Vec
 };
 
 mod defindex_client {
@@ -163,26 +164,26 @@ impl PayrollYieldContract {
             .get(&DataKey::DefindexPoolAddress)
             .ok_or(Error::NotInitialized)?;
         
-        // Approve DeFindex vault to spend tokens
+        // Approve DeFindex vault to spend our tokens
         token_client.approve(
             &env.current_contract_address(),
             &defindex_vault,
             &total_amount,
-            &(env.ledger().sequence() + 1000), // Approval valid for 1000 ledgers
+            &(env.ledger().sequence() + 1000),
         );
         
-        // Deposit into DeFindex vault for yield generation
         let defindex_client = DefindexVaultClient::new(&env, &defindex_vault);
         let mut amounts_vec = Vec::new(&env);
         amounts_vec.push_back(total_amount);
         let mut min_amounts = Vec::new(&env);
-        min_amounts.push_back(total_amount); // No slippage tolerance for single asset
+        min_amounts.push_back(total_amount);
         
+        // Try direct call - DeFindex should use the approval we set
         let (_, vault_shares) = defindex_client.deposit(
             &amounts_vec,
             &min_amounts,
             &env.current_contract_address(),
-            &true, // Invest immediately
+            &true,
         );
         
         let lock = PayrollLock {
@@ -245,10 +246,10 @@ impl PayrollYieldContract {
             .get(&DataKey::DefindexPoolAddress)
             .ok_or(Error::NotInitialized)?;
         
-        // Withdraw from DeFindex vault to get principal + yield
+        // Withdraw from DeFindex vault
         let defindex_client = DefindexVaultClient::new(&env, &defindex_vault);
         let mut min_amounts_out = Vec::new(&env);
-        min_amounts_out.push_back(lock.total_amount); // Minimum: at least the principal
+        min_amounts_out.push_back(lock.total_amount);
         
         let withdrawn_amounts = defindex_client.withdraw(
             &lock.vault_shares,
@@ -256,11 +257,11 @@ impl PayrollYieldContract {
             &env.current_contract_address(),
         );
         
-        // Calculate actual yield earned (total withdrawn - principal)
+        // Calculate actual yield earned
         let total_withdrawn = withdrawn_amounts.get(0).unwrap_or(0);
         let yield_earned = total_withdrawn
             .checked_sub(lock.total_amount)
-            .unwrap_or(0); // If no yield, default to 0
+            .unwrap_or(0);
         
         // Transfer principal to SDP wallet for employee distribution
         let token_client = TokenClient::new(&env, &token);
