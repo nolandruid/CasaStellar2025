@@ -3,7 +3,7 @@
  * Handles all database operations for employees
  */
 
-import { Employee as PrismaEmployee } from "@prisma/client";
+import { Employee as PrismaEmployee } from "../../generated/prisma/client";
 import { prisma } from "../lib/prisma";
 
 export type Employee = PrismaEmployee;
@@ -13,6 +13,8 @@ export interface CreateEmployeeInput {
   lastName: string;
   salary: number;
   walletAddress: string;
+  department?: string;
+  employerId?: string;
 }
 
 export interface UpdateEmployeeInput {
@@ -20,6 +22,8 @@ export interface UpdateEmployeeInput {
   lastName?: string;
   salary?: number;
   walletAddress?: string;
+  department?: string;
+  employerId?: string;
 }
 
 /**

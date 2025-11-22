@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { authAPI } from '../services/api'
+import { useAuth } from '../context/AuthContext'
 import './LoginScreen.css'
 
 interface LoginScreenProps {
@@ -6,26 +9,32 @@ interface LoginScreenProps {
 }
 
 export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
+  const navigate = useNavigate()
+  const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setError('')
 
-    // Simulate login API call
-    setTimeout(() => {
-      setLoading(false)
-      // Trigger authentication
+    try {
+      const response = await authAPI.login({ email, password })
+      login(response.data.token, response.data.employer)
+      
       if (onLoginSuccess) {
         onLoginSuccess()
       } else {
-        // Fallback: set localStorage directly
-        localStorage.setItem('isAuthenticated', 'true')
-        window.location.reload()
+        navigate('/dashboard')
       }
-    }, 1500)
+    } catch (err: any) {
+      setError(err.message || 'Login failed')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -43,6 +52,20 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
           <h1 className="login-title">Admin Login</h1>
           <p className="login-subtitle">Please sign in to continue.</p>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div style={{
+            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+            border: '1px solid rgb(239, 68, 68)',
+            color: '#fecaca',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            marginBottom: '16px'
+          }}>
+            {error}
+          </div>
+        )}
 
         {/* Login Form */}
         <form className="login-form" onSubmit={handleSubmit}>
@@ -112,6 +135,28 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             )}
           </button>
         </form>
+
+        {/* Register Link */}
+        <div style={{ marginTop: '24px', textAlign: 'center' }}>
+          <p style={{ color: '#d1d5db' }}>
+            Don't have an account?{' '}
+            <button
+              onClick={() => navigate('/register')}
+              style={{
+                color: '#a78bfa',
+                fontWeight: '500',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                textDecoration: 'none'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.color = '#c4b5fd'}
+              onMouseOut={(e) => e.currentTarget.style.color = '#a78bfa'}
+            >
+              Sign Up
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   )

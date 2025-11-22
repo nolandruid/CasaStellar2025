@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import WalletConnect from '../components/WalletConnect'
+import { useAuth } from '../context/AuthContext'
+import { employeesAPI, type Employee } from '../services/api'
 import { 
   nextPayrollCycle, 
   payrollPool, 
-  mockEmployees, 
   yieldStats, 
   yieldHistory,
   recentActivity,
@@ -12,15 +13,39 @@ import {
 import './Dashboard.css'
 
 export default function Dashboard() {
+  const { employer } = useAuth()
   const [showDepositModal, setShowDepositModal] = useState(false)
   const [depositAmount, setDepositAmount] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
+  const [employees, setEmployees] = useState<Employee[]>([])
+  const [isLoadingEmployees, setIsLoadingEmployees] = useState(true)
 
-  // Pool data from centralized mock data
-  const totalRequired = payrollPool.targetAmount
-  const currentDeposited = payrollPool.currentDeposited
-  const remainingAmount = totalRequired - currentDeposited
-  const progressPercentage = (currentDeposited / totalRequired) * 100
+  // Load employees on mount
+  useEffect(() => {
+    loadEmployees()
+  }, [])
+
+  const loadEmployees = async () => {
+    try {
+      setIsLoadingEmployees(true)
+      const response = await employeesAPI.getAll()
+      setEmployees(response.data)
+    } catch (error) {
+      console.error('Error loading employees:', error)
+    } finally {
+      setIsLoadingEmployees(false)
+    }
+  }
+
+  // Calculate real payroll data from employees
+  const totalMonthlyPayroll = employees.reduce((sum, emp) => sum + emp.salary, 0) / 100 // Convert from cents to dollars
+  const employeeCount = employees.length
+
+  // Pool data - using real total with mock current deposited for now
+  const totalRequired = totalMonthlyPayroll
+  const currentDeposited = Math.min(payrollPool.currentDeposited, totalRequired) // Don't exceed required
+  const remainingAmount = Math.max(totalRequired - currentDeposited, 0)
+  const progressPercentage = totalRequired > 0 ? (currentDeposited / totalRequired) * 100 : 0
   const daysUntilPayroll = getDaysUntilNextPayroll()
 
   const handleDeposit = async (type: 'full' | 'partial') => {
@@ -53,7 +78,9 @@ export default function Dashboard() {
         <div className="header-avatar">
           <div className="avatar-img"></div>
         </div>
-        <h2 className="header-title">Welcome back, Admin!</h2>
+        <h2 className="header-title">
+          Welcome back, {employer ? `${employer.firstName}!` : 'Admin!'}
+        </h2>
         <div className="header-actions">
           <WalletConnect />
         </div>
@@ -74,9 +101,15 @@ export default function Dashboard() {
             </div>
             <div className="amount-section">
               <p className="amount-label">Total amount to be disbursed</p>
-              <p className="amount-value">${nextPayrollCycle.totalAmount.toLocaleString()}</p>
+              <p className="amount-value">
+                {isLoadingEmployees ? (
+                  <span style={{ fontSize: '1.5rem', color: '#6c757d' }}>Loading...</span>
+                ) : (
+                  `$${totalMonthlyPayroll.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                )}
+              </p>
               <p className="amount-label" style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
-                20 employees • {nextPayrollCycle.period}
+                {isLoadingEmployees ? 'Loading employees...' : `${employeeCount} employees • ${nextPayrollCycle.period}`}
               </p>
             </div>
             <button className="btn-run-payroll">
@@ -104,35 +137,54 @@ export default function Dashboard() {
           </div>
 
           <div className="pool-progress-section">
-            <div className="pool-amounts">
-              <div className="pool-current">
-                <span className="pool-amount-label">Current</span>
-                <span className="pool-amount-value">${currentDeposited.toLocaleString()}</span>
+            {isLoadingEmployees ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#6c757d' }}>
+                <div className="spinner" style={{ width: '40px', height: '40px', margin: '0 auto 1rem', borderWidth: '3px' }}></div>
+                <p>Loading payroll data...</p>
               </div>
-              <div className="pool-divider">/</div>
-              <div className="pool-target">
-                <span className="pool-amount-label">Target</span>
-                <span className="pool-amount-value">${totalRequired.toLocaleString()}</span>
-              </div>
-            </div>
+            ) : (
+              <>
+                <div className="pool-amounts">
+                  <div className="pool-current">
+                    <span className="pool-amount-label">Current</span>
+                    <span className="pool-amount-value">
+                      ${currentDeposited.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="pool-divider">/</div>
+                  <div className="pool-target">
+                    <span className="pool-amount-label">Target</span>
+                    <span className="pool-amount-value">
+                      ${totalRequired.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
 
-            <div className="progress-bar-container">
-              <div 
-                className="progress-bar-fill"
-                style={{ width: `${progressPercentage}%` }}
-              ></div>
-            </div>
+                <div className="progress-bar-container">
+                  <div 
+                    className="progress-bar-fill"
+                    style={{ width: `${progressPercentage}%` }}
+                  ></div>
+                </div>
 
-            <div className="pool-stats">
-              <div className="pool-stat-item">
-                <span className="pool-stat-label">Remaining</span>
-                <span className="pool-stat-value remaining">${remainingAmount.toLocaleString()}</span>
-              </div>
-              <div className="pool-stat-item">
-                <span className="pool-stat-label">Progress</span>
-                <span className="pool-stat-value">{progressPercentage.toFixed(1)}%</span>
-              </div>
-            </div>
+                <div className="pool-stats">
+                  <div className="pool-stat-item">
+                    <span className="pool-stat-label">Remaining</span>
+                    <span className="pool-stat-value remaining">
+                      ${remainingAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="pool-stat-item">
+                    <span className="pool-stat-label">Progress</span>
+                    <span className="pool-stat-value">{progressPercentage.toFixed(1)}%</span>
+                  </div>
+                  <div className="pool-stat-item">
+                    <span className="pool-stat-label">Employees</span>
+                    <span className="pool-stat-value">{employeeCount}</span>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -146,8 +198,12 @@ export default function Dashboard() {
           </div>
           <div className="stat-card">
             <p className="stat-label">Active Employees</p>
-            <p className="stat-value">{mockEmployees.length}</p>
-            <p className="stat-change positive">+{((mockEmployees.length / 11) * 100 - 100).toFixed(1)}%</p>
+            <p className="stat-value">
+              {isLoadingEmployees ? '...' : employeeCount}
+            </p>
+            <p className="stat-change positive">
+              {isLoadingEmployees ? '...' : `+${employeeCount > 0 ? ((employeeCount / Math.max(employeeCount - 1, 1)) * 100 - 100).toFixed(1) : '0.0'}%`}
+            </p>
           </div>
           <div className="stat-card stat-card-full">
             <p className="stat-label">YTD Yield Generated</p>

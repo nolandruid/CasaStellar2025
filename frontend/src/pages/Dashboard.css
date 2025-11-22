@@ -1138,3 +1138,20 @@
     font-size: 1.125rem;
   }
 }
+
+/* Loading Spinner */
+.spinner {
+  border: 2px solid rgba(16, 185, 129, 0.1);
+  border-top-color: #10B981;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
