@@ -39,7 +39,7 @@ export default function Dashboard() {
   }
 
   // Calculate real payroll data from employees
-  const totalMonthlyPayroll = employees.reduce((sum, emp) => sum + emp.salary, 0) / 100 // Convert from cents to dollars
+  const totalMonthlyPayroll = employees.reduce((sum, emp) => sum + Number(emp.salary), 0) // Total in XLM
   const employeeCount = employees.length
 
   // Pool data - using real total with mock current deposited for now
@@ -56,12 +56,12 @@ export default function Dashboard() {
       // Aquí irá la lógica del smart contract
       const amount = type === 'full' ? remainingAmount : parseFloat(depositAmount)
       
-      console.log(`Depositing ${amount} USD to Defindex smart contract...`)
+      console.log(`Depositing ${amount} XLM to Defindex smart contract...`)
       
       // Simulación de llamada al contrato
       await new Promise(resolve => setTimeout(resolve, 2000))
       
-      alert(`Deposit of $${amount.toFixed(2)} completed successfully!`)
+      alert(`Deposit of ${amount.toFixed(2)} XLM completed successfully!`)
       setShowDepositModal(false)
       setDepositAmount('')
     } catch (error) {
@@ -109,7 +109,7 @@ export default function Dashboard() {
                 {isLoadingEmployees ? (
                   <span style={{ fontSize: '1.5rem', color: '#6c757d' }}>Loading...</span>
                 ) : (
-                  `$${totalMonthlyPayroll.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  `${totalMonthlyPayroll.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XLM`
                 )}
               </p>
               <p className="amount-label" style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
@@ -152,14 +152,14 @@ export default function Dashboard() {
                   <div className="pool-current">
                     <span className="pool-amount-label">Current</span>
                     <span className="pool-amount-value">
-                      ${currentDeposited.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {currentDeposited.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XLM
                     </span>
                   </div>
                   <div className="pool-divider">/</div>
                   <div className="pool-target">
                     <span className="pool-amount-label">Target</span>
                     <span className="pool-amount-value">
-                      ${totalRequired.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {totalRequired.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XLM
                     </span>
                   </div>
                 </div>
@@ -175,7 +175,7 @@ export default function Dashboard() {
                   <div className="pool-stat-item">
                     <span className="pool-stat-label">Remaining</span>
                     <span className="pool-stat-value remaining">
-                      ${remainingAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {remainingAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} XLM
                     </span>
                   </div>
                   <div className="pool-stat-item">

@@ -17,6 +17,7 @@ import {
   setupProcessErrorHandlers,
 } from "./middleware/logging";
 import logger from "./utils/logger";
+import { startCron, stopCron } from "./services/cron";
 // import authRoutes from "./routes/auth"; // Disabled - uses Prisma
 // import employeeRoutes from "./routes/employee"; // Disabled - uses Prisma
 import payrollRoutes from "./routes/payroll";
@@ -108,6 +109,9 @@ async function startServer(): Promise<void> {
         port: SERVER_CONFIG.PORT,
         environment: process.env.NODE_ENV || 'development',
       });
+
+      // Start cron job for automatic payroll releases
+      startCron();
     });
   } catch (error) {
     logger.error("Failed to start server", error as Error);
@@ -121,11 +125,13 @@ startServer();
 // Graceful shutdown
 process.on("SIGTERM", (): void => {
   logger.info("SIGTERM signal received: closing HTTP server");
+  stopCron();
   process.exit(0);
 });
 
 process.on("SIGINT", (): void => {
   logger.info("SIGINT signal received: closing HTTP server");
+  stopCron();
   process.exit(0);
 });
 

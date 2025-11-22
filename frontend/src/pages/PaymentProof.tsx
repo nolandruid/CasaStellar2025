@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { lastPaymentProof } from '../data/mockData'
 import './PaymentProof.css'
 
 export default function PaymentProof() {
   const navigate = useNavigate()
   const [copied, setCopied] = useState(false)
 
-  const { payrollCycle, proofHash, proofHashShort, verified, onTime } = lastPaymentProof
-  const fullProofHash = proofHash
+  const proofHash = '0x4a2e...b8f9'
+  const fullProofHash = '0x4a2e8f3d9c1b5a7e2d4f6a8b0c3e5f7a9b1c3d5e7f9a1b3c5d7e9f1a3b5c7d9f8b8f9'
 
   const handleCopyProof = () => {
     navigator.clipboard.writeText(fullProofHash)
@@ -34,21 +33,21 @@ export default function PaymentProof() {
 PayDay Payment Proof Report
 ============================
 
-Proof Verified: ${verified ? '✓' : '✗'}
-Payment Period: ${payrollCycle.period}
+Proof Verified: ✓
+Payment Period: June 2024
 
 Proof Details:
 -------------
-Payroll Cycle: ${payrollCycle.startDate} - ${payrollCycle.endDate}
-Payment Due Date: ${payrollCycle.dueDate}
-Actual Payment Date: ${payrollCycle.actualPaymentDate}
-Status: ${onTime ? 'On Time' : 'Delayed'}
+Payroll Cycle: June 1 - June 30, 2024
+Payment Due Date: June 30, 2024
+Actual Payment Date: June 30, 2024
+Status: On Time
 
 Zero-Knowledge Proof:
 --------------------
 ${fullProofHash}
 
-This cryptographic proof confirms ${onTime ? 'on-time' : ''} payment without revealing 
+This cryptographic proof confirms on-time payment without revealing 
 employee salaries or wallet addresses.
 
 Generated: ${new Date().toLocaleString()}
@@ -91,9 +90,9 @@ Generated: ${new Date().toLocaleString()}
               <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
             </svg>
           </div>
-          <h1 className="verification-title">Proof {verified ? 'Verified' : 'Failed'}</h1>
+          <h1 className="verification-title">Proof Verified</h1>
           <p className="verification-subtitle">
-            Payments for {payrollCycle.period} were sent {onTime ? 'on time' : 'with delay'}.
+            Payments for June 2024 were sent on time.
           </p>
         </div>
 
@@ -104,21 +103,21 @@ Generated: ${new Date().toLocaleString()}
             
             <div className="detail-item">
               <p className="detail-label">Payroll Cycle</p>
-              <p className="detail-value">{payrollCycle.startDate} - {payrollCycle.endDate}</p>
+              <p className="detail-value">June 1 - June 30, 2024</p>
             </div>
 
             <div className="detail-divider"></div>
 
             <div className="detail-item">
               <p className="detail-label">Payment Due Date</p>
-              <p className="detail-value">{payrollCycle.dueDate}</p>
+              <p className="detail-value">June 30, 2024</p>
             </div>
 
             <div className="detail-divider"></div>
 
             <div className="detail-item">
               <p className="detail-label">Actual Payment Date</p>
-              <p className="detail-value">{payrollCycle.actualPaymentDate}</p>
+              <p className="detail-value">June 30, 2024</p>
             </div>
 
             <div className="detail-divider"></div>
@@ -129,22 +128,8 @@ Generated: ${new Date().toLocaleString()}
                 <svg viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                 </svg>
-                <span>{onTime ? 'On Time' : 'Delayed'}</span>
+                <span>On Time</span>
               </div>
-            </div>
-
-            <div className="detail-divider"></div>
-
-            <div className="detail-item">
-              <p className="detail-label">Total Amount</p>
-              <p className="detail-value">${payrollCycle.totalAmount.toLocaleString()}</p>
-            </div>
-
-            <div className="detail-divider"></div>
-
-            <div className="detail-item">
-              <p className="detail-label">Employees Paid</p>
-              <p className="detail-value">{payrollCycle.employeeCount}</p>
             </div>
 
           </div>
@@ -164,11 +149,11 @@ Generated: ${new Date().toLocaleString()}
             </button>
           </div>
           <p className="zk-description">
-            This cryptographic proof confirms {onTime ? 'on-time' : ''} payment without revealing 
+            This cryptographic proof confirms on-time payment without revealing 
             employee salaries or wallet addresses.
           </p>
           <div className="proof-hash-container">
-            <p className="proof-hash">{proofHashShort}</p>
+            <p className="proof-hash">{proofHash}</p>
             <button 
               className="btn-copy"
               onClick={handleCopyProof}

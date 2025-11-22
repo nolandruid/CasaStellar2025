@@ -43,6 +43,41 @@ interface ClaimPayResponse {
 const router = Router();
 
 /**
+ * GET /test-supabase
+ * Test Supabase connection
+ */
+router.get("/test-supabase", async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!supabaseService.isConfigured()) {
+      res.status(503).json({
+        success: false,
+        error: "Supabase not configured",
+        message: "SUPABASE_URL or SUPABASE_ANON_KEY missing in .env"
+      });
+      return;
+    }
+
+    // Try to fetch payrolls (will fail if tables don't exist or connection is bad)
+    const payrolls = await supabaseService.getPayrollsReadyForRelease();
+    
+    res.json({
+      success: true,
+      message: "Supabase connection successful",
+      payrollsCount: payrolls.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error("❌ Supabase test failed:", error);
+    res.status(500).json({
+      success: false,
+      error: "Supabase connection failed",
+      details: error.message,
+      code: error.code
+    });
+  }
+});
+
+/**
  * Format Zod validation errors
  */
 function formatZodErrors(error: ZodError<unknown>): Record<string, string[]> {
@@ -69,11 +104,14 @@ router.post(
   "/uploadPayroll",
   async (req: Request, res: Response): Promise<void> => {
     try {
+      console.log('📥 Received payload:', JSON.stringify(req.body, null, 2));
+      
       // Validate request body with Zod
       const validationResult = UploadPayrollSchema.safeParse(req.body);
 
       if (!validationResult.success) {
         const errors = formatZodErrors(validationResult.error);
+        console.error('❌ Validation failed:', JSON.stringify(errors, null, 2));
         res.status(400).json({
           success: false,
           error: "Validation failed",
