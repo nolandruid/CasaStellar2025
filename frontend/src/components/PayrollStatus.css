@@ -167,6 +167,91 @@
   color: white;
 }
 
+/* Transaction Section */
+.transaction-section {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: #0f0f0f;
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+
+.transaction-section h3 {
+  margin: 0 0 1rem 0;
+  font-size: 0.95rem;
+  color: #888;
+}
+
+.tx-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.tx-label {
+  color: #888;
+  font-size: 0.85rem;
+  min-width: 80px;
+}
+
+.tx-hash {
+  color: #667eea;
+  text-decoration: none;
+  font-family: monospace;
+  font-size: 0.85rem;
+  transition: color 0.2s;
+}
+
+.tx-hash:hover {
+  color: #8b9efc;
+  text-decoration: underline;
+}
+
+/* Action Section */
+.action-section {
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.btn-release {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  width: 100%;
+  max-width: 400px;
+}
+
+.btn-release:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-release:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.action-note {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #f59e0b;
+  font-style: italic;
+}
+
+.detail-row.highlight {
+  background: rgba(102, 126, 234, 0.1);
+  padding: 0.5rem;
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+}
+
 @media (prefers-color-scheme: light) {
   .btn-refresh {
     background: #f9f9f9;
@@ -185,6 +270,11 @@
 
   .batch-footer {
     border-top-color: #ddd;
+  }
+
+  .transaction-section {
+    background: #f5f5f5;
+    border-color: #ddd;
   }
 }
 

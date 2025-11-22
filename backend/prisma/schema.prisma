@@ -33,7 +33,7 @@ model Employee {
   id            String   @id @default(uuid())
   firstName     String
   lastName      String
-  salary        Int      // Cents
+  salary        Decimal  // XLM amount (e.g., 3500.50)
   walletAddress String
   department    String?  // Opcional
   createdAt     DateTime @default(now())

@@ -36,17 +36,24 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      console.log('Attempting to connect wallet...')
+      console.log('🔌 Attempting to connect wallet...')
       
       // Get the address from the selected wallet
-      const { address } = await StellarWalletsKit.getAddress()
+      const result = await StellarWalletsKit.getAddress()
+      console.log('📥 Wallet result:', result)
       
-      setPublicKey(address)
-      setConnected(true)
-      console.log('Wallet connected:', address)
+      if (result && result.address) {
+        setPublicKey(result.address)
+        setConnected(true)
+        console.log('✅ Wallet connected successfully!')
+        console.log('📍 Public Key:', result.address)
+      } else {
+        console.error('❌ No address returned from wallet')
+        alert('Failed to get wallet address. Please try again.')
+      }
     } catch (error) {
-      console.error('Error connecting wallet:', error)
-      alert('Error connecting to wallet. Please make sure you have a Stellar wallet installed (Freighter, Albedo, xBull, etc.) and try again.')
+      console.error('❌ Error connecting wallet:', error)
+      alert('Error connecting to wallet. Please make sure you have Freighter installed and try again.')
     }
   }
 

@@ -10,13 +10,22 @@ import "dotenv/config";
 import express, { Express, NextFunction, Request, Response } from "express";
 
 import { SERVER_CONFIG } from "./config/constants";
-import authRoutes from "./routes/auth";
-import employeeRoutes from "./routes/employee";
+import {
+  requestLogger,
+  errorHandler,
+  notFoundHandler,
+  setupProcessErrorHandlers,
+} from "./middleware/logging";
+import logger from "./utils/logger";
+import { startCron, stopCron } from "./services/cron";
+// import authRoutes from "./routes/auth"; // Disabled - uses Prisma
+// import employeeRoutes from "./routes/employee"; // Disabled - uses Prisma
 import payrollRoutes from "./routes/payroll";
 import {
   checkSorobanHealth,
   initializeSorobanServer,
 } from "./services/stellar";
+import supabaseService from "./services/supabase";
 
 // Initialize Express app
 const app: Express = express();
@@ -37,6 +46,9 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Request logging middleware
+app.use(requestLogger);
+
 // Initialize Soroban connection
 let sorobanServer: rpc.Server | null = null;
 
@@ -45,72 +57,64 @@ let sorobanServer: rpc.Server | null = null;
  */
 async function initializeApp(): Promise<void> {
   try {
-    console.log("🚀 Initializing Payroll Backend Server...\n");
+    logger.info("Initializing Payroll Backend Server...");
+
+    // Initialize Supabase
+    supabaseService.initialize();
+    logger.info("Supabase initialized");
 
     // Connect to Soroban
     sorobanServer = initializeSorobanServer();
+    logger.info("Soroban server initialized");
 
     // Check health
     await checkSorobanHealth(sorobanServer);
+    logger.info("Soroban health check passed");
 
     // Make sorobanServer available in app locals
     app.locals.sorobanServer = sorobanServer;
 
-    console.log("✓ App initialization complete\n");
+    logger.info("App initialization complete");
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    console.error("✗ Failed to initialize app:", errorMessage);
+    logger.error("Failed to initialize app", error as Error);
     process.exit(1);
   }
 }
 
 // Routes
-app.use("/auth", authRoutes);
+// app.use("/auth", authRoutes); // Disabled - uses Prisma
 app.use("/", payrollRoutes);
-app.use("/", employeeRoutes);
+// app.use("/", employeeRoutes); // Disabled - uses Prisma
 
-/**
- * 404 Handler
- */
-app.use((req: Request, res: Response): void => {
-  res.status(404).json({
-    success: false,
-    error: "Endpoint not found",
-    path: req.path,
-  });
-});
+// 404 Handler
+app.use(notFoundHandler);
 
-/**
- * Error Handler
- */
-app.use((err: Error, req: Request, res: Response, next: NextFunction): void => {
-  console.error("Server Error:", err.message);
-  res.status(500).json({
-    success: false,
-    error: "Internal server error",
-    message: err.message,
-  });
-});
+// Error Handler (must be last)
+app.use(errorHandler);
 
 /**
  * Start Server
  */
 async function startServer(): Promise<void> {
   try {
+    // Setup process error handlers
+    setupProcessErrorHandlers();
+
     // Initialize app dependencies
     await initializeApp();
 
     // Start listening
     app.listen(SERVER_CONFIG.PORT, (): void => {
-      console.log(`
-✨ Server running on http://localhost:${SERVER_CONFIG.PORT}
-      `);
+      logger.info(`Server running on http://localhost:${SERVER_CONFIG.PORT}`, {
+        port: SERVER_CONFIG.PORT,
+        environment: process.env.NODE_ENV || 'development',
+      });
+
+      // Start cron job for automatic payroll releases
+      startCron();
     });
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    console.error("Failed to start server:", errorMessage);
+    logger.error("Failed to start server", error as Error);
     process.exit(1);
   }
 }
@@ -120,12 +124,14 @@ startServer();
 
 // Graceful shutdown
 process.on("SIGTERM", (): void => {
-  console.log("SIGTERM signal received: closing HTTP server");
+  logger.info("SIGTERM signal received: closing HTTP server");
+  stopCron();
   process.exit(0);
 });
 
 process.on("SIGINT", (): void => {
-  console.log("SIGINT signal received: closing HTTP server");
+  logger.info("SIGINT signal received: closing HTTP server");
+  stopCron();
   process.exit(0);
 });
 

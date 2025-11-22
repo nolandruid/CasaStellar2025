@@ -4,7 +4,7 @@
  */
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { authAPI, Employer } from '../services/api';
+import { Employer } from '../services/api';
 
 interface AuthContextType {
   employer: Employer | null;
@@ -25,21 +25,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Load token from localStorage on mount
   useEffect(() => {
     const loadAuth = async () => {
-      const storedToken = localStorage.getItem('authToken');
+      // DEMO MODE: Auto-login enabled (auth endpoints disabled)
+      console.log('🎭 Demo Mode: Auto-login enabled (auth endpoints disabled)');
       
-      if (storedToken) {
-        setToken(storedToken);
-        try {
-          // Verify token and get employer profile
-          const response = await authAPI.getProfile();
-          setEmployer(response.data);
-        } catch (error) {
-          console.error('Failed to load profile:', error);
-          // Token is invalid, clear it
-          localStorage.removeItem('authToken');
-          setToken(null);
-        }
-      }
+      // Create a mock employer for demo purposes
+      const demoEmployer: Employer = {
+        id: 'demo-employer-1',
+        email: 'demo@payday.com',
+        firstName: 'Demo',
+        lastName: 'Employer',
+        companyName: 'PayDay Demo',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      
+      const demoToken = 'demo-token-' + Date.now();
+      
+      // Auto-login for demo
+      setToken(demoToken);
+      setEmployer(demoEmployer);
+      localStorage.setItem('authToken', demoToken);
       
       setIsLoading(false);
     };
