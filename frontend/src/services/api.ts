@@ -269,6 +269,8 @@ export interface PayrollStatus {
   yield_earned: string;
   funds_released: boolean;
   yield_claimed: boolean;
+  tx_hash_lock?: string;
+  tx_hash_release?: string;
 }
 
 export interface UploadPayrollResponse {

@@ -15,6 +15,8 @@ interface PayrollBatch {
   yieldClaimed: boolean
   currentYield?: string
   elapsedTime?: number
+  txHashLock?: string
+  txHashRelease?: string
 }
 
 export default function PayrollStatus() {
@@ -22,6 +24,8 @@ export default function PayrollStatus() {
   const [batch, setBatch] = useState<PayrollBatch | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [releasing, setReleasing] = useState(false)
+  const [releaseSuccess, setReleaseSuccess] = useState(false)
 
   useEffect(() => {
     // Get last batch ID from localStorage
@@ -69,6 +73,8 @@ export default function PayrollStatus() {
           yieldClaimed: status.yield_claimed,
           currentYield: yieldData.currentYield,
           elapsedTime: yieldData.elapsedTime,
+          txHashLock: status.tx_hash_lock,
+          txHashRelease: status.tx_hash_release,
         })
       }
     } catch (error) {
@@ -110,6 +116,45 @@ export default function PayrollStatus() {
   const stroopsToAmount = (stroops: string) => {
     const amount = BigInt(stroops) / BigInt(10000000)
     return amount.toString()
+  }
+
+  const handleReleasePayroll = async () => {
+    if (!batch || !publicKey) return
+
+    const confirmed = window.confirm(
+      'Are you sure you want to release this payroll now?\n\n' +
+      'This will:\n' +
+      '1. Withdraw funds from DeFindex vault\n' +
+      '2. Release principal to SDP for distribution\n' +
+      '3. Make yield available for claiming\n\n' +
+      'Note: In production, this happens automatically on payout date.'
+    )
+
+    if (!confirmed) return
+
+    setReleasing(true)
+    try {
+      console.log(`🚀 Releasing payroll batch ${batch.batchId}`)
+      
+      const response = await payrollAPI.releasePayroll(batch.employer, batch.batchId)
+      
+      if (response.success) {
+        console.log('✅ Payroll released successfully:', response)
+        setReleaseSuccess(true)
+        
+        // Refresh status immediately
+        await fetchPayrollStatus(batch.employer, batch.batchId)
+        
+        setTimeout(() => setReleaseSuccess(false), 5000)
+      } else {
+        throw new Error('Release failed')
+      }
+    } catch (error) {
+      console.error('Error releasing payroll:', error)
+      alert(`Failed to release payroll: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setReleasing(false)
+    }
   }
 
   return (
@@ -165,6 +210,55 @@ export default function PayrollStatus() {
               </div>
             )}
           </div>
+
+          {/* Transaction Hashes */}
+          {(batch.txHashLock || batch.txHashRelease) && (
+            <div className="transaction-section">
+              <h3>🔗 Transactions</h3>
+              {batch.txHashLock && batch.txHashLock !== 'contract_failed' && (
+                <div className="tx-link">
+                  <span className="tx-label">Lock TX:</span>
+                  <a 
+                    href={`https://stellar.expert/explorer/testnet/tx/${batch.txHashLock}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="tx-hash"
+                  >
+                    {batch.txHashLock.substring(0, 8)}...{batch.txHashLock.substring(batch.txHashLock.length - 8)} ↗
+                  </a>
+                </div>
+              )}
+              {batch.txHashRelease && (
+                <div className="tx-link">
+                  <span className="tx-label">Release TX:</span>
+                  <a 
+                    href={`https://stellar.expert/explorer/testnet/tx/${batch.txHashRelease}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="tx-hash"
+                  >
+                    {batch.txHashRelease.substring(0, 8)}...{batch.txHashRelease.substring(batch.txHashRelease.length - 8)} ↗
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Release Button */}
+          {!batch.fundsReleased && (
+            <div className="action-section">
+              <button 
+                className="btn-release"
+                onClick={handleReleasePayroll}
+                disabled={releasing || !publicKey}
+              >
+                {releasing ? '⏳ Releasing...' : releaseSuccess ? '✓ Released!' : '🚀 Release Payroll Now'}
+              </button>
+              <p className="action-note">
+                ⚠️ Manual release for demo purposes. In production, this triggers automatically on payout date.
+              </p>
+            </div>
+          )}
 
           <div className="batch-footer">
             <span className="created-at">

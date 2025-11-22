@@ -247,19 +247,86 @@ router.post("/releasePayroll", async (req: Request, res: Response): Promise<void
       return;
     }
 
+    console.log(`🚀 Manual release triggered for batch ${batchId}`);
+
     // Call contract to release funds to SDP
     const result = await releaseToSDP(employerAddress, batchId);
 
-    // Update Supabase if configured
+    console.log(`✅ Contract release successful. TX: ${result.txHash}, Yield: ${result.yieldEarned}`);
+
+    let disbursementId: string | undefined;
+    let sdpError: string | undefined;
+
+    // Update Supabase and trigger SDP if configured
     if (supabaseService.isConfigured()) {
       try {
         const payroll = await supabaseService.getPayrollByBatchId(employerAddress, batchId);
         if (payroll) {
+          // Update payroll status
           await supabaseService.updatePayrollStatus(payroll.id!, {
             status: 'released',
             yield_earned: result.yieldEarned,
             tx_hash_release: result.txHash,
           });
+
+          // Get employees and create SDP disbursement
+          const employees = await supabaseService.getEmployeesByPayroll(payroll.id!);
+          
+          if (employees.length > 0) {
+            try {
+              console.log(`📤 Creating SDP disbursement for ${employees.length} employees`);
+
+              // Convert employees to SDP format
+              const sdpEmployees = employees.map((emp, index) => ({
+                id: emp.id || `emp_${index}`,
+                phone: emp.stellar_address,
+                amount: emp.amount,
+              }));
+
+              // Create and start SDP disbursement
+              const sdpService = (await import('../services/sdp')).default;
+              const disbursement = await sdpService.createDisbursement({
+                name: `Payroll Batch ${batchId}`,
+                wallet_id: sdpService.getWalletAddress(),
+                asset_code: 'XLM',
+                csv_data: sdpEmployees,
+              });
+
+              disbursementId = disbursement.id;
+              console.log(`✅ SDP disbursement created: ${disbursementId}`);
+
+              // Start the disbursement
+              await sdpService.startDisbursement(disbursementId);
+              console.log(`✅ SDP disbursement started`);
+
+              // Update status to distributed
+              await supabaseService.updatePayrollStatus(payroll.id!, {
+                status: 'distributed',
+              });
+
+              // Record SDP upload
+              await supabaseService.createSDPUpload({
+                payroll_id: payroll.id!,
+                sdp_response: {
+                  disbursement_id: disbursementId,
+                  status: 'started',
+                  total_payments: disbursement.total_payments,
+                },
+                upload_status: 'success',
+              });
+            } catch (sdpErr) {
+              const errMsg = sdpErr instanceof Error ? sdpErr.message : 'Unknown SDP error';
+              console.error('⚠️  SDP disbursement failed:', errMsg);
+              sdpError = errMsg;
+
+              // Record SDP failure
+              await supabaseService.createSDPUpload({
+                payroll_id: payroll.id!,
+                sdp_response: { error: errMsg },
+                upload_status: 'failed',
+              });
+            }
+          }
         }
       } catch (dbError) {
         console.error('⚠️  Failed to update database:', dbError);
@@ -268,9 +335,11 @@ router.post("/releasePayroll", async (req: Request, res: Response): Promise<void
 
     res.status(200).json({
       success: true,
-      message: "Payroll released successfully to SDP",
+      message: "Payroll released successfully",
       txHash: result.txHash,
       yieldEarned: result.yieldEarned,
+      disbursementId,
+      sdpError,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {

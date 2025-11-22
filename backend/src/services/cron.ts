@@ -100,43 +100,91 @@ async function processPayrollRelease(payroll: PayrollRecord): Promise<void> {
       payrollId: payroll.id,
     });
 
-    // Step 3: Start SDP disbursement if disbursement_id exists
-    // Note: This assumes disbursement was created during lock phase
-    // If you store sdp_disbursement_id in payroll record, use it here
-    // For now, we'll log that SDP needs to be triggered separately
-    logger.info(`Payroll released successfully`, {
-      batchId: payroll.batch_id,
-      txHash,
-      yieldEarned,
-      duration: `${Date.now() - startTime}ms`,
-    });
-
-    // If you have SDP disbursement ID stored, uncomment this:
-    /*
-    if (payroll.sdp_disbursement_id) {
-      try {
-        logger.info(`Starting SDP disbursement`, {
-          disbursementId: payroll.sdp_disbursement_id,
+    // Step 3: Create and start SDP disbursement
+    try {
+      // Get employee records for this payroll
+      const employees = await supabaseService.getEmployeesByPayroll(payroll.id!);
+      
+      if (employees.length === 0) {
+        logger.warn(`No employees found for payroll ${payroll.id}`, {
+          payrollId: payroll.id,
+          batchId: payroll.batch_id,
         });
-        
-        await sdpService.startDisbursement(payroll.sdp_disbursement_id);
-        
+      } else {
+        logger.info(`Creating SDP disbursement for ${employees.length} employees`, {
+          payrollId: payroll.id,
+          employeeCount: employees.length,
+        });
+
+        // Convert employees to SDP format
+        const sdpEmployees = employees.map((emp, index) => ({
+          id: emp.id || `emp_${index}`,
+          phone: emp.stellar_address, // Using stellar address as identifier
+          amount: emp.amount,
+        }));
+
+        // Create SDP disbursement
+        const disbursement = await sdpService.createDisbursement({
+          name: `Payroll Batch ${payroll.batch_id}`,
+          wallet_id: sdpService.getWalletAddress(),
+          asset_code: 'XLM',
+          csv_data: sdpEmployees,
+        });
+
+        logger.info(`SDP disbursement created`, {
+          disbursementId: disbursement.id,
+          totalPayments: disbursement.total_payments,
+        });
+
+        // Start the disbursement
+        await sdpService.startDisbursement(disbursement.id);
+
+        logger.info(`SDP disbursement started successfully`, {
+          disbursementId: disbursement.id,
+        });
+
+        // Update payroll status to distributed
         await supabaseService.updatePayrollStatus(payroll.id!, {
           status: 'distributed',
         });
-        
-        logger.info(`SDP disbursement started successfully`, {
-          disbursementId: payroll.sdp_disbursement_id,
+
+        // Create SDP upload record
+        await supabaseService.createSDPUpload({
+          payroll_id: payroll.id!,
+          sdp_response: {
+            disbursement_id: disbursement.id,
+            status: 'started',
+            total_payments: disbursement.total_payments,
+          },
+          upload_status: 'success',
         });
-      } catch (sdpError) {
-        logger.error('Failed to start SDP disbursement', sdpError as Error, {
-          disbursementId: payroll.sdp_disbursement_id,
-          payrollId: payroll.id,
+
+        logger.info(`Payroll fully distributed via SDP`, {
+          batchId: payroll.batch_id,
+          disbursementId: disbursement.id,
         });
-        // Don't throw - payroll was released successfully
+      }
+    } catch (sdpError) {
+      logger.error('Failed to create/start SDP disbursement', sdpError as Error, {
+        payrollId: payroll.id,
+        batchId: payroll.batch_id,
+      });
+
+      // Record SDP failure but don't throw - payroll was released successfully
+      if (supabaseService.isConfigured()) {
+        try {
+          await supabaseService.createSDPUpload({
+            payroll_id: payroll.id!,
+            sdp_response: {
+              error: sdpError instanceof Error ? sdpError.message : 'Unknown error',
+            },
+            upload_status: 'failed',
+          });
+        } catch (recordError) {
+          logger.error('Failed to record SDP error', recordError as Error);
+        }
       }
     }
-    */
 
     logger.info(`✅ Payroll ${payroll.batch_id} released successfully!`, {
       txHash,
