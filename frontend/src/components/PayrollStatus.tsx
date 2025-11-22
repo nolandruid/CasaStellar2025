@@ -119,18 +119,29 @@ export default function PayrollStatus() {
   }
 
   const handleReleasePayroll = async () => {
-    if (!batch || !publicKey) return
+    console.log('🔘 Release button clicked!')
+    console.log('Batch:', batch)
+    console.log('Public Key:', publicKey)
+    
+    if (!batch || !publicKey) {
+      console.error('❌ Missing batch or publicKey')
+      alert('Please connect your wallet first')
+      return
+    }
 
     const confirmed = window.confirm(
       'Are you sure you want to release this payroll now?\n\n' +
       'This will:\n' +
-      '1. Withdraw funds from DeFindex vault\n' +
-      '2. Release principal to SDP for distribution\n' +
-      '3. Make yield available for claiming\n\n' +
+      '• Release funds from the contract\n' +
+      '• Distribute yield to employees\n' +
+      '• Trigger SDP disbursement\n\n' +
       'Note: In production, this happens automatically on payout date.'
     )
 
-    if (!confirmed) return
+    if (!confirmed) {
+      console.log('User cancelled release')
+      return
+    }
 
     setReleasing(true)
     try {
