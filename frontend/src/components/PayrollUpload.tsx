@@ -12,17 +12,24 @@ interface PayrollData {
 export default function PayrollUpload() {
   const { isConnected, publicKey } = useWallet()
   
-  // Calculate default date (30 days from now) with time
+  // Calculate default date (30 seconds from now for demo) with time
   const getDefaultDate = () => {
     const date = new Date()
-    date.setDate(date.getDate() + 30)
+    date.setSeconds(date.getSeconds() + 30) // 30 seconds from now for demo
     // Format as YYYY-MM-DDTHH:MM for datetime-local input
     return date.toISOString().slice(0, 16)
   }
   
+  // Default test employees (under 10k total)
+  const getDefaultEmployees = () => {
+    return `GCTCBTX5WY5YPXG4VPK5ZYLS4QFW4CGAPZDKXRRMVGXNG7UYQUPQAIKJ, 500, Alice
+GCTCBTX5WY5YPXG4VPK5ZYLS4QFW4CGAPZDKXRRMVGXNG7UYQUPQAIKJ, 750, Bob
+GCTCBTX5WY5YPXG4VPK5ZYLS4QFW4CGAPZDKXRRMVGXNG7UYQUPQAIKJ, 1000, Charlie`
+  }
+  
   const [formData, setFormData] = useState<PayrollData>({
-    employees: '',
-    amount: '',
+    employees: getDefaultEmployees(),
+    amount: '2250', // Auto-calculated from default employees
     paymentDate: getDefaultDate()
   })
   const [loading, setLoading] = useState(false)
