@@ -7,19 +7,21 @@ import { rpc } from "@stellar/stellar-sdk";
 import bodyParser from "body-parser";
 import cors from "cors";
 import "dotenv/config";
-import express, { Express, NextFunction, Request, Response } from "express";
+import express, { Express } from "express";
 
 import { SERVER_CONFIG } from "./config/constants";
 import {
-  requestLogger,
   errorHandler,
   notFoundHandler,
+  requestLogger,
   setupProcessErrorHandlers,
 } from "./middleware/logging";
-import logger from "./utils/logger";
 import { startCron, stopCron } from "./services/cron";
+import logger from "./utils/logger";
 // import authRoutes from "./routes/auth"; // Disabled - uses Prisma
 // import employeeRoutes from "./routes/employee"; // Disabled - uses Prisma
+import authRoutes from "./routes/auth";
+import employeeRoutes from "./routes/employee";
 import payrollRoutes from "./routes/payroll";
 import {
   checkSorobanHealth,
@@ -82,9 +84,9 @@ async function initializeApp(): Promise<void> {
 }
 
 // Routes
-// app.use("/auth", authRoutes); // Disabled - uses Prisma
+app.use("/auth", authRoutes); // Disabled - uses Prisma
 app.use("/", payrollRoutes);
-// app.use("/", employeeRoutes); // Disabled - uses Prisma
+app.use("/", employeeRoutes); // Disabled - uses Prisma
 
 // 404 Handler
 app.use(notFoundHandler);
@@ -107,7 +109,7 @@ async function startServer(): Promise<void> {
     app.listen(SERVER_CONFIG.PORT, (): void => {
       logger.info(`Server running on http://localhost:${SERVER_CONFIG.PORT}`, {
         port: SERVER_CONFIG.PORT,
-        environment: process.env.NODE_ENV || 'development',
+        environment: process.env.NODE_ENV || "development",
       });
 
       // Start cron job for automatic payroll releases

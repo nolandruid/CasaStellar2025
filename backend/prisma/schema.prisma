@@ -16,15 +16,15 @@ datasource db {
 model Employer {
   id          String   @id @default(uuid())
   email       String   @unique
-  password    String   // Debe ser hasheada antes de guardar
+  password    String // Debe ser hasheada antes de guardar
   firstName   String
   lastName    String
   companyName String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   // Relación con empleados
-  employees   Employee[]
+  employees Employee[]
 
   @@map("employers")
 }
@@ -33,15 +33,15 @@ model Employee {
   id            String   @id @default(uuid())
   firstName     String
   lastName      String
-  salary        Decimal  // XLM amount (e.g., 3500.50)
+  salary        Decimal // XLM amount (e.g., 3500.50)
   walletAddress String
-  department    String?  // Opcional
+  department    String? // Opcional
   createdAt     DateTime @default(now())
   updatedAt     DateTime @default(now()) @updatedAt
-  
+
   // Relación con empleador (opcional por ahora para migración)
-  employerId    String?
-  employer      Employer? @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  employerId String?
+  employer   Employer? @relation(fields: [employerId], references: [id], onDelete: Cascade)
 
   @@map("employees")
 }
