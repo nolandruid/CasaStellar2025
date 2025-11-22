@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { StellarWalletsKit } from '@creit-tech/stellar-wallets-kit/sdk'
-import { defaultModules } from '@creit-tech/stellar-wallets-kit/modules/utils'
+import { StellarWalletsKit, Networks } from '@creit-tech/stellar-wallets-kit'
+import { FreighterModule, FREIGHTER_ID } from '@creit-tech/stellar-wallets-kit/modules/freighter'
+import { xBullModule } from '@creit-tech/stellar-wallets-kit/modules/xbull'
+import { LobstrModule } from '@creit-tech/stellar-wallets-kit/modules/lobstr'
 
 interface WalletContextType {
   publicKey: string | null
@@ -17,50 +19,60 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
-    // Initialize Stellar Wallets Kit once on mount
+    // Initialize the Stellar Wallets Kit once
     if (!initialized) {
-      try {
-        StellarWalletsKit.init({ modules: defaultModules() })
-        setInitialized(true)
-        console.log('Stellar Wallets Kit initialized')
-      } catch (error) {
-        console.error('Error initializing Stellar Wallets Kit:', error)
-      }
+      StellarWalletsKit.init({
+        network: Networks.TESTNET, // Change to Networks.PUBLIC for production
+        selectedWalletId: FREIGHTER_ID,
+        modules: [
+          new FreighterModule(),
+          new xBullModule(),
+          new LobstrModule(),
+        ],
+      })
+      setInitialized(true)
+      console.log('✅ Stellar Wallets Kit initialized')
     }
   }, [initialized])
 
   const connectWallet = async () => {
-    if (!initialized) {
-      alert('Wallet kit is still initializing. Please wait a moment and try again.')
-      return
-    }
-
     try {
-      console.log('🔌 Attempting to connect wallet...')
+      console.log('🔌 Opening wallet authentication modal...')
       
-      // Get the address from the selected wallet
-      const result = await StellarWalletsKit.getAddress()
-      console.log('📥 Wallet result:', result)
+      // Open the authentication modal - it handles wallet selection and connection
+      const { address } = await StellarWalletsKit.authModal()
       
-      if (result && result.address) {
-        setPublicKey(result.address)
+      if (address) {
+        setPublicKey(address)
         setConnected(true)
         console.log('✅ Wallet connected successfully!')
-        console.log('📍 Public Key:', result.address)
+        console.log('📍 Public Key:', address)
       } else {
-        console.error('❌ No address returned from wallet')
         alert('Failed to get wallet address. Please try again.')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error connecting wallet:', error)
-      alert('Error connecting to wallet. Please make sure you have Freighter installed and try again.')
+      
+      if (error?.message?.includes('User declined') || error?.message?.includes('rejected') || error?.message?.includes('closed')) {
+        console.log('Connection cancelled by user')
+      } else {
+        alert(`Error: ${error?.message || 'Failed to connect wallet'}`)
+      }
     }
   }
 
-  const disconnectWallet = () => {
-    setPublicKey(null)
-    setConnected(false)
-    console.log('Wallet disconnected')
+  const disconnectWallet = async () => {
+    try {
+      await StellarWalletsKit.disconnect()
+      setPublicKey(null)
+      setConnected(false)
+      console.log('Wallet disconnected')
+    } catch (error) {
+      console.error('Error disconnecting:', error)
+      // Still clear local state even if disconnect fails
+      setPublicKey(null)
+      setConnected(false)
+    }
   }
 
   return (
@@ -69,7 +81,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         publicKey,
         isConnected: connected,
         connectWallet,
-        disconnectWallet
+        disconnectWallet,
       }}
     >
       {children}
