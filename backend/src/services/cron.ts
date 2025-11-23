@@ -25,7 +25,7 @@ async function checkDuePayrolls(): Promise<void> {
 
   try {
     isProcessing = true;
-    logger.debug('Checking for due payrolls...');
+    logger.info('🔍 Checking for due payrolls...');
 
     // Check if Supabase is configured
     if (!supabaseService.isConfigured()) {
@@ -37,7 +37,7 @@ async function checkDuePayrolls(): Promise<void> {
     const duePayrolls = await supabaseService.getPayrollsReadyForRelease();
 
     if (!duePayrolls || duePayrolls.length === 0) {
-      logger.debug('No payrolls due for release');
+      logger.info('No payrolls due for release');
       return;
     }
 

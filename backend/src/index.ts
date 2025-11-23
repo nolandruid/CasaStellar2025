@@ -20,8 +20,6 @@ import { startCron, stopCron } from "./services/cron";
 import logger from "./utils/logger";
 // import authRoutes from "./routes/auth"; // Disabled - uses Prisma
 // import employeeRoutes from "./routes/employee"; // Disabled - uses Prisma
-import authRoutes from "./routes/auth";
-import employeeRoutes from "./routes/employee";
 import payrollRoutes from "./routes/payroll";
 import {
   checkSorobanHealth,
@@ -84,9 +82,9 @@ async function initializeApp(): Promise<void> {
 }
 
 // Routes
-app.use("/auth", authRoutes); // Disabled - uses Prisma
+// app.use("/auth", authRoutes); // Disabled - uses Prisma
 app.use("/", payrollRoutes);
-app.use("/", employeeRoutes); // Disabled - uses Prisma
+// app.use("/", employeeRoutes); // Disabled - uses Prisma
 
 // 404 Handler
 app.use(notFoundHandler);
