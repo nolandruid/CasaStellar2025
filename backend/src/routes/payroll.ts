@@ -236,10 +236,14 @@ router.post(
  * @param {Response} res - Express response
  */
 router.post("/releasePayroll", async (req: Request, res: Response): Promise<void> => {
+  console.log('🔥 /releasePayroll endpoint hit!');
+  console.log('Request body:', req.body);
+  
   try {
     const { employerAddress, batchId } = req.body;
 
     if (!employerAddress || !batchId) {
+      console.log('❌ Missing required fields');
       res.status(400).json({
         success: false,
         error: "employerAddress and batchId are required",
@@ -250,9 +254,16 @@ router.post("/releasePayroll", async (req: Request, res: Response): Promise<void
     console.log(`🚀 Manual release triggered for batch ${batchId}`);
 
     // Call contract to release funds to SDP
-    const result = await releaseToSDP(employerAddress, batchId);
-
-    console.log(`✅ Contract release successful. TX: ${result.txHash}, Yield: ${result.yieldEarned}`);
+    let result;
+    try {
+      result = await releaseToSDP(employerAddress, batchId);
+      console.log(`✅ Contract release successful. TX: ${result.txHash}, Yield: ${result.yieldEarned}`);
+    } catch (contractError) {
+      const errMsg = contractError instanceof Error ? contractError.message : 'Unknown contract error';
+      console.error(`❌ Contract release failed:`, errMsg);
+      console.error('Full error:', contractError);
+      throw new Error(`Contract release failed: ${errMsg}`);
+    }
 
     let disbursementId: string | undefined;
     let sdpError: string | undefined;

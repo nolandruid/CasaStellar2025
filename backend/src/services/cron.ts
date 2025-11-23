@@ -102,6 +102,21 @@ async function processPayrollRelease(payroll: PayrollRecord): Promise<void> {
 
     // Step 3: Create and start SDP disbursement
     try {
+      // Check if SDP is configured
+      const sdpConfigured = process.env.SDP_API_URL && process.env.SDP_API_KEY;
+      
+      if (!sdpConfigured) {
+        logger.info(`SDP not configured - skipping disbursement creation`, {
+          payrollId: payroll.id,
+          batchId: payroll.batch_id,
+        });
+        // Mark as distributed anyway for demo purposes
+        await supabaseService.updatePayrollStatus(payroll.id!, {
+          status: 'distributed',
+        });
+        return;
+      }
+      
       // Get employee records for this payroll
       const employees = await supabaseService.getEmployeesByPayroll(payroll.id!);
       

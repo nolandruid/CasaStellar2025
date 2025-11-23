@@ -9,23 +9,33 @@ interface PayrollData {
   paymentDate: string
 }
 
-export default function PayrollUpload() {
-  const { isConnected, publicKey } = useWallet()
+// Calculate default date (20 seconds from now for demo) with time
+const getDefaultDate = () => {
+  const date = new Date()
+  date.setSeconds(date.getSeconds() + 20) // 20 seconds from now for demo
   
-  // Calculate default date (20 seconds from now for demo) with time
-  const getDefaultDate = () => {
-    const date = new Date()
-    date.setSeconds(date.getSeconds() + 20) // 20 seconds from now for demo
-    // Format as YYYY-MM-DDTHH:MM for datetime-local input
-    return date.toISOString().slice(0, 16)
-  }
+  // Format for datetime-local input using UTC time (with seconds)
+  const year = date.getUTCFullYear()
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(date.getUTCDate()).padStart(2, '0')
+  const hours = String(date.getUTCHours()).padStart(2, '0')
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0')
+  const seconds = String(date.getUTCSeconds()).padStart(2, '0')
   
-  // Default test employees (low amounts for testing)
-  const getDefaultEmployees = () => {
-    return `GCTCBTX5WY5YPXG4VPK5ZYLS4QFW4CGAPZDKXRRMVGXNG7UYQUPQAIKJ, 5, Alice
+  const formatted = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`
+  console.log('🕐 getDefaultDate called:', { date, formatted, timestamp: Math.floor(date.getTime() / 1000), utcString: date.toISOString() })
+  return formatted
+}
+
+// Default test employees (low amounts for testing)
+const getDefaultEmployees = () => {
+  return `GCTCBTX5WY5YPXG4VPK5ZYLS4QFW4CGAPZDKXRRMVGXNG7UYQUPQAIKJ, 5, Alice
 GCTCBTX5WY5YPXG4VPK5ZYLS4QFW4CGAPZDKXRRMVGXNG7UYQUPQAIKJ, 10, Bob
 GCTCBTX5WY5YPXG4VPK5ZYLS4QFW4CGAPZDKXRRMVGXNG7UYQUPQAIKJ, 10, Charlie`
-  }
+}
+
+export default function PayrollUpload() {
+  const { isConnected, publicKey } = useWallet()
   
   const [formData, setFormData] = useState<PayrollData>({
     employees: getDefaultEmployees(),
@@ -120,7 +130,20 @@ GCTCBTX5WY5YPXG4VPK5ZYLS4QFW4CGAPZDKXRRMVGXNG7UYQUPQAIKJ, 10, Charlie`
       }
 
       // Convert payment date to Unix timestamp
-      const payoutDate = Math.floor(new Date(formData.paymentDate).getTime() / 1000)
+      // IMPORTANT: Append 'Z' to treat the datetime-local value as UTC
+      // This prevents timezone offset from being added
+      const payoutDate = Math.floor(new Date(formData.paymentDate + 'Z').getTime() / 1000)
+      const now = Math.floor(Date.now() / 1000)
+      
+      console.log('⏰ Timestamp debug:', {
+        formDataPaymentDate: formData.paymentDate,
+        withZ: formData.paymentDate + 'Z',
+        parsedDate: new Date(formData.paymentDate + 'Z').toISOString(),
+        payoutDateTimestamp: payoutDate,
+        nowTimestamp: now,
+        differenceSeconds: payoutDate - now,
+        differenceMinutes: (payoutDate - now) / 60
+      })
       
       const payload = {
         employerAddress: publicKey,
@@ -215,14 +238,32 @@ GCTCBTX5WY5YPXG4VPK5ZYLS4QFW4CGAPZDKXRRMVGXNG7UYQUPQAIKJ, 10, Charlie`
 
           <div className="form-group">
             <label htmlFor="paymentDate">Payment Date & Time</label>
-            <input
-              type="datetime-local"
-              id="paymentDate"
-              value={formData.paymentDate}
-              onChange={(e) => setFormData({ ...formData, paymentDate: e.target.value })}
-              required
-            />
-            <span className="helper-text">For demo: Set to current time + 30 seconds</span>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="datetime-local"
+                id="paymentDate"
+                value={formData.paymentDate}
+                onChange={(e) => setFormData({ ...formData, paymentDate: e.target.value })}
+                required
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, paymentDate: getDefaultDate() })}
+                style={{
+                  padding: '8px 12px',
+                  background: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                +20s
+              </button>
+            </div>
+            <span className="helper-text">Click "+20s" to set 20 seconds from NOW</span>
           </div>
         </div>
 
