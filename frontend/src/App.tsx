@@ -15,7 +15,6 @@ import './App.css'
 
 function AppContent() {
   const [showSplash, setShowSplash] = useState(true)
-  const { logout, employer } = useAuth()
 
   const handleLoadingComplete = () => {
     setShowSplash(false)

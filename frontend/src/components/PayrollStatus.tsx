@@ -21,8 +21,7 @@ interface PayrollBatch {
 
 export default function PayrollStatus() {
   const { publicKey } = useWallet()
-  const [batches, setBatches] = useState<PayrollBatch[]>([])
-  const [selectedBatch, setSelectedBatch] = useState<string | null>(null)
+  const [batch, setBatch] = useState<PayrollBatch | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [releasing, setReleasing] = useState(false)
@@ -88,11 +87,11 @@ export default function PayrollStatus() {
           })
         )
         
-        setBatches(batchesWithStatus.filter(Boolean) as PayrollBatch[])
+        const validBatches = batchesWithStatus.filter(Boolean) as PayrollBatch[]
         
-        // Auto-select the most recent batch
-        if (batchesWithStatus.length > 0 && !selectedBatch) {
-          setSelectedBatch(batchesWithStatus[0]?.batchId || null)
+        // Set the most recent batch
+        if (validBatches.length > 0) {
+          setBatch(validBatches[0])
         }
       }
       setLoading(false)
