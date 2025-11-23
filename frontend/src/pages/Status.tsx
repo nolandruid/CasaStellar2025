@@ -1,5 +1,5 @@
 import WalletConnect from '../components/WalletConnect'
-import PayrollStatus from '../components/PayrollStatus'
+import PayrollStatusList from '../components/PayrollStatusList'
 import './Status.css'
 
 export default function Status() {
@@ -14,7 +14,7 @@ export default function Status() {
       </header>
 
       <main className="page-main">
-        <PayrollStatus />
+        <PayrollStatusList />
       </main>
     </div>
   )

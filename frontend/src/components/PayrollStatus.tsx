@@ -21,31 +21,87 @@ interface PayrollBatch {
 
 export default function PayrollStatus() {
   const { publicKey } = useWallet()
-  const [batch, setBatch] = useState<PayrollBatch | null>(null)
+  const [batches, setBatches] = useState<PayrollBatch[]>([])
+  const [selectedBatch, setSelectedBatch] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [releasing, setReleasing] = useState(false)
   const [releaseSuccess, setReleaseSuccess] = useState(false)
 
   useEffect(() => {
-    // Get last batch ID from localStorage
-    const lastBatchId = localStorage.getItem('lastBatchId')
-    const lastEmployerAddress = localStorage.getItem('lastEmployerAddress')
-    
-    if (lastBatchId && lastEmployerAddress) {
-      fetchPayrollStatus(lastEmployerAddress, lastBatchId)
+    if (publicKey) {
+      fetchAllPayrolls()
       
-      // Poll every 10 seconds for real-time yield updates
+      // Poll every 10 seconds for real-time updates
       const interval = setInterval(() => {
-        fetchPayrollStatus(lastEmployerAddress, lastBatchId)
+        fetchAllPayrolls()
       }, 10000)
       
       return () => clearInterval(interval)
     } else {
       setLoading(false)
-      setError('No payroll batch found. Please upload a payroll first.')
+      setError('Please connect your wallet to view payroll history.')
     }
-  }, [])
+  }, [publicKey])
+
+  const fetchAllPayrolls = async () => {
+    if (!publicKey) return
+    
+    try {
+      setError(null)
+      const response = await payrollAPI.getPayrolls(publicKey)
+      
+      if (response.success && response.data) {
+        // Fetch status for each payroll
+        const batchesWithStatus = await Promise.all(
+          response.data.map(async (payroll: any) => {
+            try {
+              const [statusResponse, yieldResponse] = await Promise.all([
+                payrollAPI.getStatus(payroll.employer_address, payroll.batch_id.toString()),
+                payrollAPI.calculateCurrentYield(payroll.employer_address, payroll.batch_id.toString()),
+              ])
+              
+              if (statusResponse.success && yieldResponse.success) {
+                const status = statusResponse.data
+                const yieldData = yieldResponse.data
+                
+                return {
+                  batchId: payroll.batch_id.toString(),
+                  employer: status.employer,
+                  totalAmount: status.total_amount,
+                  vaultShares: status.vault_shares,
+                  lockDate: status.lock_date,
+                  payoutDate: status.payout_date,
+                  yieldEarned: status.yield_earned,
+                  fundsReleased: status.funds_released,
+                  yieldClaimed: status.yield_claimed,
+                  currentYield: yieldData.currentYield,
+                  elapsedTime: yieldData.elapsedTime,
+                  txHashLock: payroll.tx_hash_lock,
+                  txHashRelease: payroll.tx_hash_release,
+                }
+              }
+            } catch (err) {
+              console.error(`Failed to fetch status for batch ${payroll.batch_id}:`, err)
+            }
+            return null
+          })
+        )
+        
+        setBatches(batchesWithStatus.filter(Boolean) as PayrollBatch[])
+        
+        // Auto-select the most recent batch
+        if (batchesWithStatus.length > 0 && !selectedBatch) {
+          setSelectedBatch(batchesWithStatus[0]?.batchId || null)
+        }
+      }
+      setLoading(false)
+    } catch (error) {
+      console.error('Error fetching payrolls:', error)
+      setError(error instanceof Error ? error.message : 'Failed to fetch payrolls')
+      setLoading(false)
+    }
+  }
 
   const fetchPayrollStatus = async (employerAddress: string, batchId: string) => {
     try {

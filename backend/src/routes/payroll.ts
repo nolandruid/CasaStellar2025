@@ -526,6 +526,45 @@ router.post("/claimPay", async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
+ * GET /payrolls
+ * Get all payrolls for an employer address
+ *
+ * @param {Request} req - Express request with employerAddress query param
+ * @param {Response} res - Express response
+ */
+router.get("/payrolls", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { employerAddress } = req.query;
+
+    if (!employerAddress) {
+      res.status(400).json({
+        success: false,
+        error: "employerAddress query parameter is required",
+      } as ErrorResponse);
+      return;
+    }
+
+    // Query Supabase for all payrolls by employer
+    const payrolls = await supabaseService.getPayrollHistory(employerAddress as string);
+
+    res.status(200).json({
+      success: true,
+      data: payrolls,
+      count: payrolls.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("Error in /payrolls:", errorMessage);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch payrolls",
+      details: { error: [errorMessage] },
+    } as ErrorResponse);
+  }
+});
+
+/**
  * POST /checkAndRelease
  * Manually trigger automated check for payrolls ready to release
  * (For testing - in production this should be a cron job)

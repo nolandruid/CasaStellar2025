@@ -352,6 +352,26 @@ export const payrollAPI = {
   },
 
   /**
+   * Get all payrolls for an employer
+   */
+  async getPayrolls(employerAddress: string): Promise<ApiResponse<any[]>> {
+    const response = await fetch(
+      `${API_BASE_URL}/payrolls?employerAddress=${encodeURIComponent(employerAddress)}`,
+      {
+        method: 'GET',
+        headers: getAuthHeaders(),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to fetch payrolls');
+    }
+
+    return response.json();
+  },
+
+  /**
    * Release payroll to SDP
    */
   async releasePayroll(employerAddress: string, batchId: string): Promise<ApiResponse<any>> {
